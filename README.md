@@ -38,30 +38,16 @@ Every AWS resource has its own atomic identity, composable with precision into i
 EIF organizes Terraform code into three hierarchical levels of abstraction:
 
 ### ◉ Atom — Level 01
-> *The minimum deployable unit.*
+> *Internal. Not user-facing.*
 
-A single AWS service written in plain HCL. Each atom is autonomous, independently versionable, and encapsulates all resources, variables, and outputs for **one service only**.
-
-```
-atoms/storage/s3/
-├── main.tf
-├── variables.tf
-└── outputs.tf
-```
+A single AWS service written in plain HCL. Atoms are the primitive building blocks of the framework — scoped to **one service only**. They are composed by molecules and are never deployed directly.
 
 ---
 
 ### ◈ Molecule — Level 02
-> *A self-contained architectural blueprint.*
+> *Internal. Not user-facing.*
 
-A combination of atoms that forms a coherent, independently deployable pattern. Molecules compose atoms via standard Terraform module sources — no abstraction layer, just HCL.
-
-```
-molecules/swa/                  # Static Web App
-├── main.tf                     # composes: s3 + cloudfront + waf
-├── variables.tf
-└── outputs.tf
-```
+A combination of atoms forming a coherent architectural pattern. Molecules are standard blueprints reused across matter templates — they are composed by matter and are never deployed directly.
 
 | Molecule | Atoms |
 |---|---|
@@ -70,9 +56,9 @@ molecules/swa/                  # Static Web App
 ---
 
 ### ◆ Matter — Level 03
-> *A complete, parameterized application.*
+> *The only user-facing level.*
 
-A composition of molecules declared through a `composition.json` file. The `eif` renderer processes it through a Jinja2 template (`main.tf.j2`) and produces a ready-to-apply `main.tf`. Users edit JSON — the HCL is generated.
+**Matter is the sole entry point for every deployment.** Even a deployment that uses a single molecule is expressed as a matter. Users declare their molecule stack and config in `composition.json`; the `eif` renderer produces ready-to-apply HCL via a Jinja2 template.
 
 ```json
 {
@@ -171,7 +157,7 @@ module "{{ mol.name }}" {
 uv sync
 ```
 
-### Render and deploy a matter
+### Render and deploy
 
 ```bash
 # render composition.json → main.tf
@@ -182,21 +168,7 @@ terraform -chdir=matter/three-tier-app init
 terraform -chdir=matter/three-tier-app apply
 ```
 
-### Use a single molecule directly
-
-```bash
-cd molecules/swa
-terraform init
-terraform apply -var-file="my-env.tfvars"
-```
-
-### Use a single atom directly
-
-```bash
-cd atoms/storage/s3
-terraform init
-terraform apply
-```
+Matter is the only deployment entry point. Atoms and molecules are internal — use them as building blocks when authoring new matter templates, but never deploy them directly.
 
 ---
 
