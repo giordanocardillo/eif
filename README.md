@@ -62,8 +62,8 @@ A combination of atoms forming a coherent architectural pattern. Intra-molecule 
 
 **Matter is the sole entry point for every deployment.** Even a deployment using a single molecule is expressed as a matter. Each matter has two types of input file:
 
-- **`composition.json`** — stable structure: which molecules to include and which version to pin. Shared across all environments and only changes when the architecture changes.
-- **`<env>.json`** — per-environment: the AWS account to use and the sizing/config for each molecule.
+- **`composition.json`** — stable structure: which molecules to include and which version to pin. Shared across all environments, only changes when the architecture changes.
+- **`<env>.json`** — a flat pool of variables for that environment. No per-molecule grouping, no `environment` key — that is injected automatically by the renderer from the CLI argument.
 
 ```json
 // composition.json — structure (environment-agnostic)
@@ -78,27 +78,26 @@ A combination of atoms forming a coherent architectural pattern. Intra-molecule 
 ```
 
 ```json
-// prod.json — account + per-molecule config for production
+// prod.json — flat variable pool for production
 {
   "account": "prod",
-  "single-page-application": {
-    "environment": "prod",
-    "bucket_name": "my-app-assets-prod",
-    "s3_versioning_enabled": true
-  },
-  "db": {
-    "environment": "prod",
-    "instance_class": "db.t3.medium",
-    "multi_az": true
-  },
-  "lambda-svc": {
-    "environment": "prod",
-    "memory_mb": 512
-  }
+
+  "bucket_name": "my-app-assets-prod",
+  "s3_versioning_enabled": true,
+  "cloudfront_price_class": "PriceClass_100",
+
+  "instance_class": "db.t3.medium",
+  "multi_az": true,
+
+  "vpc_id": "vpc-prod-id",
+  "subnet_ids": ["subnet-a", "subnet-b"],
+
+  "memory_mb": 512,
+  "timeout_s": 30
 }
 ```
 
-The `eif` renderer merges both files at render time and produces ready-to-apply HCL.
+The `eif` renderer injects `environment` automatically and makes all flat vars available to the Jinja2 template. The template is the wiring layer — it explicitly maps flat variables to each module's inputs, using `{{ src['mol-name'] }}` to reference the pinned source path.
 
 ---
 
@@ -140,9 +139,9 @@ eif/
 └── matter/                         # Deployable applications
     └── three-tier-app/
         ├── composition.json        # molecule list + pinned versions (stable)
-        ├── dev.json                # account + per-molecule config for dev
-        ├── test.json               # account + per-molecule config for test
-        ├── prod.json               # account + per-molecule config for prod
+        ├── dev.json                # flat variable pool for dev
+        ├── test.json               # flat variable pool for test
+        ├── prod.json               # flat variable pool for prod
         ├── main.tf.j2              # Jinja2 template
         └── .rendered/              # gitignored — render artifacts
             ├── dev/main.tf
@@ -159,10 +158,9 @@ The `eif` CLI takes a matter directory and an environment name. It:
 1. Loads `accounts.json` from the repo root
 2. Loads `composition.json` from the matter directory
 3. Loads `<env>.json` from the matter directory
-4. Attaches per-molecule config from the env file onto each molecule
-5. Resolves molecule source paths relative to the render output directory
-6. Merges account config into the template context
-7. Renders `main.tf.j2` → `.rendered/<env>/main.tf`
+4. Builds a `src` dict mapping each molecule name to its resolved source path
+5. Merges account config, flat env vars, and `environment` into the template context
+6. Renders `main.tf.j2` → `.rendered/<env>/main.tf`
 
 ```
 accounts.json      ──┐
