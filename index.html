@@ -539,9 +539,9 @@
   <p class="section-label reveal">The compositional model</p>
   <h2 class="section-title reveal">Three levels of abstraction</h2>
   <p class="section-body reveal">
-    Each level builds on the previous. Atoms are independent and reusable;
-    molecules are self-contained blueprints; matter is a complete application
-    ready for provisioning.
+    Each level builds on the previous. Atoms and molecules are internal building blocks —
+    they are never deployed directly. <strong style="color:var(--matter)">Matter is the only user-facing level</strong>,
+    the sole entry point for every deployment.
   </p>
 
   <div class="hierarchy">
@@ -550,8 +550,8 @@
       <p class="h-card-num">LEVEL 01 — ATOM</p>
       <h3 class="h-card-title">Atom</h3>
       <p class="h-card-desc">
-        A single AWS service with its own Terraform files. The minimal, autonomous, and versionable unit.
-        Each atom encapsulates resources, variables, outputs, and IAM policies for one service only.
+        A single AWS service in plain HCL. The primitive building block of the framework —
+        scoped to one service only. Atoms are composed by molecules and are never deployed directly.
       </p>
       <div class="h-card-example">
         <span class="hi">atoms/compute/lambda/</span>
@@ -567,8 +567,8 @@
       <p class="h-card-num">LEVEL 02 — MOLECULE</p>
       <h3 class="h-card-title">Molecule</h3>
       <p class="h-card-desc">
-        A self-contained blueprint combining multiple atoms. Represents a standard architectural pattern,
-        deployable in isolation as a coherent functional unit.
+        A reusable architectural blueprint that combines atoms into a coherent pattern.
+        Molecules are composed by matter and are never deployed directly.
       </p>
       <div class="h-card-example">
         <span class="hi">molecules/swa/</span>
