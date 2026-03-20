@@ -1,0 +1,37 @@
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 5.0"
+    }
+  }
+  required_version = ">= 1.5"
+}
+
+# ── Atom: S3 ──────────────────────────────────────────────────────────────────
+module "s3" {
+  source = "../../atoms/storage/s3"
+
+  bucket_name        = var.bucket_name
+  versioning_enabled = var.s3_versioning_enabled
+  environment        = var.environment
+}
+
+# ── Atom: WAF ─────────────────────────────────────────────────────────────────
+module "waf" {
+  source = "../../atoms/security/waf"
+
+  name                    = var.waf_name
+  environment             = var.environment
+  managed_rule_group_name = var.waf_managed_rule_group
+}
+
+# ── Atom: CloudFront ──────────────────────────────────────────────────────────
+module "cloudfront" {
+  source = "../../atoms/networking/cloudfront"
+
+  origin_domain_name = module.s3.bucket_regional_domain_name
+  environment        = var.environment
+  price_class        = var.cloudfront_price_class
+  web_acl_id         = module.waf.web_acl_arn
+}

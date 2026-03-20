@@ -1,0 +1,46 @@
+# ============================================================================
+# EIF — Elemental Infrastructure Framework
+# Matter  : {{ matter }}
+# Rendered: by eif.py — DO NOT EDIT BY HAND
+# ============================================================================
+
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 5.0"
+    }
+  }
+  required_version = ">= 1.5"
+}
+
+provider "aws" {
+  region = "{{ aws_region }}"
+}
+
+# ── Molecules ─────────────────────────────────────────────────────────────────
+{% for mol in molecules %}
+module "{{ mol.name }}" {
+  source = "{{ mol.source }}"
+
+{% for key, value in mol.config.items() %}
+{% if value is sameas true %}
+  {{ key }} = true
+{% elif value is sameas false %}
+  {{ key }} = false
+{% elif value is string %}
+  {{ key }} = "{{ value }}"
+{% else %}
+  {{ key }} = {{ value }}
+{% endif %}
+{% endfor %}
+}
+{% endfor %}
+
+# ── Outputs ───────────────────────────────────────────────────────────────────
+{% for mol in molecules %}
+output "{{ mol.name }}_outputs" {
+  description = "Outputs from the {{ mol.name }} molecule."
+  value       = module.{{ mol.name }}
+}
+{% endfor %}
