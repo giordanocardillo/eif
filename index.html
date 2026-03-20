@@ -549,7 +549,7 @@
     <a href="#hierarchy" class="btn btn-primary">Explore the Model</a>
     <a href="#structure" class="btn btn-secondary">View Structure →</a>
   </div>
-  <span class="code-pill">uv run eif apply aws three-tier-app dev</span>
+  <span class="code-pill">eif apply aws three-tier-app dev</span>
 </div>
 
 <div class="divider"></div>
@@ -710,7 +710,7 @@
   <div class="file-tree reveal" style="margin-top:32px;">
 <pre>
 <span class="ft-comment"># upgrade a matter composition to latest molecule versions</span>
-<span style="color:var(--accent)">uv run eif upgrade</span> matters/three-tier-app/aws dev
+<span style="color:var(--accent)">eif upgrade</span> aws three-tier-app dev
 
 <span class="ft-comment"># [eif] upgraded  "molecules/aws/single-page-application/v1" → "molecules/aws/single-page-application/v2"</span>
 <span class="ft-comment"># [eif] up-to-date "molecules/aws/db/v1"</span>
@@ -734,7 +734,7 @@
   <div class="file-tree reveal" style="margin-top:48px;">
 <pre>
 <span class="ft-comment"># scaffold a new atom — prompts: name, provider, category</span>
-<span style="color:var(--accent)">uv run eif new atom</span>
+<span style="color:var(--accent)">eif new atom</span>
 <span class="ft-comment">  name: cdn-origin</span>
 <span class="ft-comment">  provider: 1) aws  2) azure  3) gcp  → 1</span>
 <span class="ft-comment">  category: 1) compute  2) networking  3) storage  4) security  5) other  → 2</span>
@@ -744,10 +744,10 @@
 <span class="ft-comment">  [eif] created   atoms/aws/networking/cdn-origin/v1/outputs.tf</span>
 
 <span class="ft-comment"># scaffold a new molecule — prompts: name, provider</span>
-<span style="color:var(--accent)">uv run eif new molecule</span> my-service
+<span style="color:var(--accent)">eif new molecule</span> my-service
 
 <span class="ft-comment"># scaffold a new matter — prompts: name, provider</span>
-<span style="color:var(--accent)">uv run eif new matter</span> serverless-api
+<span style="color:var(--accent)">eif new matter</span> serverless-api
 <span class="ft-comment">  [eif] created   matters/serverless-api/aws/composition.json</span>
 <span class="ft-comment">  [eif] created   matters/serverless-api/aws/dev.example.json</span>
 <span class="ft-comment">  [eif] created   matters/serverless-api/aws/prod.example.json</span>
@@ -781,24 +781,24 @@
   <div class="file-tree reveal" style="margin-top:48px;">
 <pre>
 <span class="ft-comment"># plan — render + terraform plan (no changes applied)</span>
-<span style="color:var(--accent)">uv run eif plan</span> aws three-tier-app dev
+<span style="color:var(--accent)">eif plan</span> aws three-tier-app dev
 
 <span class="ft-comment"># apply — render + init + apply + snapshot on success</span>
-<span style="color:var(--accent)">uv run eif apply</span> aws three-tier-app dev
+<span style="color:var(--accent)">eif apply</span> aws three-tier-app dev
 <span class="ft-comment">  [eif] rendered  → matters/three-tier-app/aws/.rendered/dev/main.tf</span>
 <span class="ft-comment">  [eif] running   terraform -chdir=... init</span>
 <span class="ft-comment">  [eif] running   terraform -chdir=... apply</span>
 <span class="ft-comment">  [eif] snapshot  → .history/dev/20260320T143012Z/main.tf</span>
 
 <span class="ft-comment"># rollback — pick a snapshot and re-apply</span>
-<span style="color:var(--accent)">uv run eif rollback</span> aws three-tier-app dev
+<span style="color:var(--accent)">eif rollback</span> aws three-tier-app dev
 <span class="ft-comment">  snapshot to restore:</span>
 <span class="ft-comment">  ❯ 20260320T143012Z</span>
 <span class="ft-comment">    20260319T091500Z</span>
 <span class="ft-comment">    20260318T182244Z</span>
 
 <span class="ft-comment"># destroy — terraform destroy against last rendered output</span>
-<span style="color:var(--accent)">uv run eif destroy</span> aws three-tier-app dev
+<span style="color:var(--accent)">eif destroy</span> aws three-tier-app dev
 </pre>
   </div>
 
@@ -807,8 +807,8 @@
       Add a <strong style="color:var(--text)">backend</strong> key to any account in <code>accounts.json</code> to enable remote state.<br>
       EIF injects the correct <span style="font-family:'Space Mono',monospace;color:var(--atom)">backend {}</span> block automatically — S3, Azure Blob, or GCS.<br><br>
       Bootstrap the state bucket in one command:<br>
-      <span style="font-family:'Space Mono',monospace;color:var(--accent);font-size:0.85rem;">uv run eif init backend aws three-tier-app prod</span><br>
-      <span style="font-family:'Space Mono',monospace;color:var(--accent);font-size:0.85rem;">uv run eif add account</span>
+      <span style="font-family:'Space Mono',monospace;color:var(--accent);font-size:0.85rem;">eif init backend aws three-tier-app prod</span><br>
+      <span style="font-family:'Space Mono',monospace;color:var(--accent);font-size:0.85rem;">eif add account</span>
       <span style="font-family:'Space Mono',monospace;color:var(--text-muted);font-size:0.85rem;"> ← add an account entry (one-time, per account)</span>
     </p>
     <span class="philosophy-attr">No backend? EIF keeps snapshots in .history/ — gitignored, local-only.</span>
