@@ -58,6 +58,8 @@ Molecules are namespaced by cloud provider: `molecules/aws/`, `molecules/azure/`
 | `single-page-application` | AWS | `s3` + `cloudfront` + `waf` | `cloudfront` ← `s3.domain`, `waf.arn` |
 | `db` | AWS | `rds` + `sg` | `sg` port derived from engine → `rds` ← `sg.id` |
 | `lambda-svc` | AWS | `lambda` + `sg` | `lambda` ← `sg.id` |
+| `single-page-application` | Azure | `blob` + `cdn` | `cdn` ← `blob.primary_web_endpoint` |
+| `single-page-application` | GCP | `gcs` + `cdn` + `armor` | `cdn` ← `gcs.bucket_name`, `armor.id` |
 
 ---
 
@@ -153,32 +155,37 @@ eif/
 │   ├── aws/
 │   │   ├── compute/lambda/v1/      # main.tf · variables.tf · outputs.tf
 │   │   ├── networking/cloudfront/v1/
-│   │   ├── storage/s3/v1/
-│   │   ├── storage/rds/v1/
-│   │   ├── security/waf/v1/
-│   │   └── security/sg/v1/
-│   ├── azure/                      # (contributions welcome)
-│   └── gcp/                        # (contributions welcome)
+│   │   ├── storage/s3/v1/ · storage/rds/v1/
+│   │   └── security/waf/v1/ · security/sg/v1/
+│   ├── azure/
+│   │   ├── storage/blob/v1/
+│   │   └── networking/cdn/v1/
+│   └── gcp/
+│       ├── storage/gcs/v1/
+│       ├── networking/cdn/v1/
+│       └── security/armor/v1/
 │
 ├── molecules/                      # Architectural blueprints
 │   ├── aws/
 │   │   ├── single-page-application/v1/   # s3/v1 + cloudfront/v1 + waf/v1
 │   │   ├── db/v1/                        # rds/v1 + sg/v1
 │   │   └── lambda-svc/v1/               # lambda/v1 + sg/v1
-│   ├── azure/                      # (contributions welcome)
-│   └── gcp/                        # (contributions welcome)
+│   ├── azure/
+│   │   └── single-page-application/v1/   # blob/v1 + cdn/v1
+│   └── gcp/
+│       └── single-page-application/v1/   # gcs/v1 + cdn/v1 + armor/v1
 │
-└── matter/                         # Deployable applications
-    └── three-tier-app/
-        ├── composition.json        # molecule list + pinned versions (stable)
-        ├── dev.json                # flat variable pool for dev
-        ├── test.json               # flat variable pool for test
-        ├── prod.json               # flat variable pool for prod
-        ├── main.tf.j2              # Jinja2 template
-        └── .rendered/              # gitignored — render artifacts
-            ├── dev/main.tf
-            ├── test/main.tf
-            └── prod/main.tf
+└── matters/                        # Deployable applications
+    ├── three-tier-app/
+    │   └── aws/
+    │       ├── composition.json    # molecule list + pinned versions (stable)
+    │       ├── dev.json · test.json · prod.json
+    │       ├── main.tf.j2          # Jinja2 template
+    │       └── .rendered/          # gitignored — render artifacts
+    └── single-page-application/
+        ├── aws/
+        ├── azure/
+        └── gcp/
 ```
 
 ---
@@ -253,7 +260,7 @@ Molecule sources are pinned in `composition.json`:
 To bump all pinned molecule versions in `composition.json` to the latest available:
 
 ```bash
-uv run eif upgrade matter/three-tier-app dev
+uv run eif upgrade matters/three-tier-app/aws dev
 ```
 
 ---
@@ -276,19 +283,19 @@ uv sync
 
 ```bash
 # render for a specific environment
-uv run eif render matter/three-tier-app dev
-uv run eif render matter/three-tier-app prod
+uv run eif render matters/three-tier-app/aws dev
+uv run eif render matters/three-tier-app/aws prod
 
 # deploy
-terraform -chdir=matter/three-tier-app/.rendered/dev init
-terraform -chdir=matter/three-tier-app/.rendered/dev apply
+terraform -chdir=matters/three-tier-app/aws/.rendered/dev init
+terraform -chdir=matters/three-tier-app/aws/.rendered/dev apply
 ```
 
 ### Upgrade molecule versions
 
 ```bash
 # bump all pinned molecule versions to latest in a composition
-uv run eif upgrade matter/three-tier-app dev
+uv run eif upgrade matters/three-tier-app/aws dev
 ```
 
 Matter is the only deployment entry point. Atoms and molecules are internal — use them as building blocks when authoring new matter templates, never deploy them directly.
@@ -299,14 +306,15 @@ Matter is the only deployment entry point. Atoms and molecules are internal — 
 
 - [x] Atom library (AWS): `s3`, `cloudfront`, `waf`, `lambda`, `rds`, `sg`
 - [x] Molecule library (AWS): `single-page-application`, `db`, `lambda-svc`
-- [x] Matter template: `three-tier-app` (`single-page-application` + `db` + `lambda-svc`)
+- [x] Matter template: `three-tier-app` (AWS — `single-page-application` + `db` + `lambda-svc`)
 - [x] Jinja2 → HCL renderer (`eif`)
 - [x] Multi-environment support (`dev`, `test`, `prod`)
 - [x] Multi-account support (profile + assume_role)
 - [x] Versioned atoms and molecules (`v1/`, upgrade CLI)
 - [x] Multi-cloud provider abstraction (AWS, Azure, GCP — pluggable)
-- [ ] Atom + molecule library: Azure
-- [ ] Atom + molecule library: GCP
+- [x] Atom + molecule library: Azure (`blob`, `cdn` → `single-page-application`)
+- [x] Atom + molecule library: GCP (`gcs`, `cdn`, `armor` → `single-page-application`)
+- [x] Matter template: `single-page-application` (AWS, Azure, GCP)
 - [ ] Atom library (AWS): compute (`ecs`), networking (`api-gateway`)
 - [ ] Matter template: `serverless-api`
 - [ ] Remote state management per matter/environment
