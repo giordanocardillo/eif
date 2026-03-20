@@ -27,6 +27,7 @@ module "waf" {
 }
 
 # ── Atom: CloudFront ──────────────────────────────────────────────────────────
+# depends on: module.s3.bucket_regional_domain_name, module.waf.web_acl_arn
 module "cloudfront" {
   source = "../../atoms/networking/cloudfront"
 

@@ -8,27 +8,38 @@ terraform {
   required_version = ">= 1.5"
 }
 
+# ── Internal dependency: derive DB port from engine ───────────────────────────
+# sg depends on this value → rds depends on sg.security_group_id
+locals {
+  db_port = {
+    postgres = 5432
+    mysql    = 3306
+    mariadb  = 3306
+  }[var.engine]
+}
+
 # ── Atom: Security Group ──────────────────────────────────────────────────────
 module "sg" {
   source = "../../atoms/security/sg"
 
   name        = "${var.identifier}-sg"
-  description = "Security group for ${var.identifier} RDS instance"
+  description = "Security group for ${var.identifier} ${var.engine} instance"
   vpc_id      = var.vpc_id
   environment = var.environment
 
   ingress_rules = [
     {
-      from_port   = 5432
-      to_port     = 5432
+      from_port   = local.db_port
+      to_port     = local.db_port
       protocol    = "tcp"
       cidr_blocks = var.allowed_cidr_blocks
-      description = "PostgreSQL access"
+      description = "${var.engine} access on port ${local.db_port}"
     }
   ]
 }
 
 # ── Atom: RDS ─────────────────────────────────────────────────────────────────
+# depends on: module.sg.security_group_id
 module "rds" {
   source = "../../atoms/storage/rds"
 

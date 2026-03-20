@@ -19,6 +19,7 @@ module "sg" {
 }
 
 # ── Atom: Lambda ──────────────────────────────────────────────────────────────
+# depends on: module.sg.security_group_id
 module "lambda" {
   source = "../../atoms/compute/lambda"
 
