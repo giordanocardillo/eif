@@ -406,11 +406,15 @@ def _do_render(matter_path: Path, env: str) -> tuple[Path, dict, dict, dict, Pat
     output_file.write_text(header + rendered)
     print(f"[eif] rendered  → {output_file}")
 
-    outputs_template = matter_path / "outputs.tf.j2"
-    if outputs_template.exists():
-        outputs_rendered = j2_env.get_template("outputs.tf.j2").render(**ctx)
-        (output_dir / "outputs.tf").write_text(outputs_rendered)
-        print(f"[eif] rendered  → {output_dir / 'outputs.tf'}")
+    outputs_tf = "".join(
+        f'output "{mol["name"].replace("-", "_")}_outputs" {{\n'
+        f'  description = "Outputs from the {mol["name"]} molecule."\n'
+        f'  value       = module.{mol["name"]}\n'
+        f'}}\n'
+        for mol in composition["molecules"]
+    )
+    (output_dir / "outputs.tf").write_text(outputs_tf)
+    print(f"[eif] rendered  → {output_dir / 'outputs.tf'}")
 
     return output_dir, account_config, composition, env_config, repo_root
 
@@ -1080,15 +1084,6 @@ def cmd_new_matter(args: list[str]) -> None:
             "# }\n\n"
         )
     _write(out / "main.tf.j2", template, cwd)
-
-    _write(out / "outputs.tf.j2", (
-        "{% for mol in molecules %}\n"
-        "output \"{{ mol.name | replace('-', '_') }}_outputs\" {\n"
-        "  description = \"Outputs from the {{ mol.name }} molecule.\"\n"
-        "  value       = module.{{ mol.name }}\n"
-        "}\n"
-        "{% endfor %}\n"
-    ), cwd)
 
     render_path = out.relative_to(cwd)
     print(f"\n[eif] matter ready → {render_path}")
