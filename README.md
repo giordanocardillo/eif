@@ -58,7 +58,7 @@ Molecules are namespaced by cloud provider: `molecules/aws/`, `molecules/azure/`
 | `single-page-application` | AWS | `s3` + `cloudfront` + `waf` | `cloudfront` ← `s3.domain`, `waf.arn` |
 | `db` | AWS | `rds` + `sg` | `sg` port derived from engine → `rds` ← `sg.id` |
 | `lambda-svc` | AWS | `lambda` + `sg` | `lambda` ← `sg.id` |
-| `single-page-application` | Azure | `blob` + `cdn` | `cdn` ← `blob.primary_web_endpoint` |
+| `single-page-application` | Azure | `blob` + `frontdoor` | `frontdoor` ← `blob.primary_web_endpoint` |
 | `single-page-application` | GCP | `gcs` + `cdn` + `armor` | `cdn` ← `gcs.bucket_name`, `armor.id` |
 
 ---
@@ -159,7 +159,7 @@ eif/
 │   │   └── security/waf/v1/ · security/sg/v1/
 │   ├── azure/
 │   │   ├── storage/blob/v1/
-│   │   └── networking/cdn/v1/
+│   │   └── networking/frontdoor/v1/
 │   └── gcp/
 │       ├── storage/gcs/v1/
 │       ├── networking/cdn/v1/
@@ -171,7 +171,7 @@ eif/
 │   │   ├── db/v1/                        # rds/v1 + sg/v1
 │   │   └── lambda-svc/v1/               # lambda/v1 + sg/v1
 │   ├── azure/
-│   │   └── single-page-application/v1/   # blob/v1 + cdn/v1
+│   │   └── single-page-application/v1/   # blob/v1 + frontdoor/v1
 │   └── gcp/
 │       └── single-page-application/v1/   # gcs/v1 + cdn/v1 + armor/v1
 │
@@ -332,7 +332,7 @@ Matter is the only deployment entry point. Atoms and molecules are internal — 
 - [x] Multi-account support (profile + assume_role)
 - [x] Versioned atoms and molecules (`v1/`, upgrade CLI)
 - [x] Multi-cloud provider abstraction (AWS, Azure, GCP — pluggable)
-- [x] Atom + molecule library: Azure (`blob`, `cdn` → `single-page-application`)
+- [x] Atom + molecule library: Azure (`blob`, `frontdoor` → `single-page-application`)
 - [x] Atom + molecule library: GCP (`gcs`, `cdn`, `armor` → `single-page-application`)
 - [x] Matter template: `single-page-application` (AWS, Azure, GCP)
 - [x] Scaffolding CLI: `eif new atom`, `eif new molecule`, `eif new matter`

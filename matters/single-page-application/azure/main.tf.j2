@@ -10,9 +10,9 @@ module "single-page-application" {
   storage_account_name     = "{{ storage_account_name }}"
   account_tier             = "{{ account_tier }}"
   account_replication_type = "{{ account_replication_type }}"
-  cdn_profile_name         = "{{ cdn_profile_name }}"
-  cdn_endpoint_name        = "{{ cdn_endpoint_name }}"
-  cdn_sku                  = "{{ cdn_sku }}"
+  frontdoor_profile_name   = "{{ frontdoor_profile_name }}"
+  frontdoor_endpoint_name  = "{{ frontdoor_endpoint_name }}"
+  frontdoor_sku_name       = "{{ frontdoor_sku_name }}"
 }
 
 # ── Outputs ───────────────────────────────────────────────────────────────────
