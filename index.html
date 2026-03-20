@@ -507,7 +507,7 @@
     <a href="#hierarchy" class="btn btn-primary">Explore the Model</a>
     <a href="#structure" class="btn btn-secondary">View Structure →</a>
   </div>
-  <span class="code-pill">terraform apply -var-file="matter/three-tier-app/composition.tfvars"</span>
+  <span class="code-pill">uv run eif matter/three-tier-app</span>
 </div>
 
 <div class="divider"></div>
@@ -585,14 +585,14 @@
       <p class="h-card-num">LEVEL 03 — MATTER</p>
       <h3 class="h-card-title">Matter</h3>
       <p class="h-card-desc">
-        A complete application composed of n molecules. Declared through a <code style="color:var(--matter);background:rgba(240,136,74,0.1);padding:2px 6px;border-radius:2px;">composition.tfvars</code> file
-        that defines the molecule stack and their configurations — not a simple variable, but a full matter template.
+        A complete application composed of n molecules. Declared through a <code style="color:var(--matter);background:rgba(240,136,74,0.1);padding:2px 6px;border-radius:2px;">composition.json</code> file,
+        rendered by the <strong style="color:var(--matter)">eif</strong> CLI into ready-to-apply HCL via Jinja2 — users edit JSON, Terraform sees clean HCL.
       </p>
       <div class="h-card-example">
         <span class="hi">matter/three-tier-app/</span>
-        <span>  ├── composition.tfvars</span>
-        <span>  ├── main.tf</span>
-        <span>  └── outputs.tf</span>
+        <span>  ├── composition.json</span>
+        <span>  ├── main.tf.j2</span>
+        <span>  └── main.tf</span>
       </div>
     </div>
   </div>
@@ -613,34 +613,25 @@
 <pre>
 <span class="ft-dir">eif/</span>
 <span class="ft-comment">│</span>
-<span class="ft-atom">├── atoms/</span>                     <span class="ft-comment"># Atomic AWS services</span>
-<span class="ft-atom">│   ├── compute/</span>
-<span class="ft-file">│   │   ├── lambda/</span>             <span class="ft-comment"># main.tf, variables.tf, outputs.tf</span>
-<span class="ft-file">│   │   └── ecs/</span>
+<span class="ft-file">├── eif.py</span>                     <span class="ft-comment"># Jinja2 → HCL renderer CLI</span>
+<span class="ft-file">├── pyproject.toml</span>              <span class="ft-comment"># Python project (uv / hatchling)</span>
+<span class="ft-comment">│</span>
+<span class="ft-atom">├── atoms/</span>                     <span class="ft-comment"># Atomic AWS services (plain HCL)</span>
 <span class="ft-atom">│   ├── networking/</span>
-<span class="ft-file">│   │   ├── cloudfront/</span>
-<span class="ft-file">│   │   └── api-gateway/</span>
+<span class="ft-file">│   │   └── cloudfront/</span>        <span class="ft-comment"># main.tf · variables.tf · outputs.tf</span>
 <span class="ft-atom">│   ├── storage/</span>
-<span class="ft-file">│   │   ├── s3/</span>
-<span class="ft-file">│   │   └── rds/</span>
+<span class="ft-file">│   │   └── s3/</span>
 <span class="ft-atom">│   └── security/</span>
-<span class="ft-file">│       ├── waf/</span>
-<span class="ft-file">│       └── sg/</span>
+<span class="ft-file">│       └── waf/</span>
 <span class="ft-comment">│</span>
 <span class="ft-molecule">├── molecules/</span>                  <span class="ft-comment"># Self-contained blueprints</span>
-<span class="ft-file">│   ├── swa/</span>                    <span class="ft-comment"># Static Web App</span>
-<span class="ft-file">│   ├── db/</span>                     <span class="ft-comment"># Database tier</span>
-<span class="ft-file">│   └── lambda-svc/</span>             <span class="ft-comment"># Lambda service</span>
+<span class="ft-file">│   └── swa/</span>                   <span class="ft-comment"># Static Web App: s3 + cloudfront + waf</span>
 <span class="ft-comment">│</span>
 <span class="ft-matter">└── matter/</span>                     <span class="ft-comment"># Complete applications</span>
-<span class="ft-file">    ├── three-tier-app/</span>
-<span class="ft-file">    │   ├── composition.tfvars</span>  <span class="ft-comment"># molecule stack + config</span>
-<span class="ft-file">    │   ├── main.tf</span>
-<span class="ft-file">    │   └── outputs.tf</span>
-<span class="ft-file">    └── serverless-api/</span>
-<span class="ft-file">        ├── composition.tfvars</span>
-<span class="ft-file">        ├── main.tf</span>
-<span class="ft-file">        └── outputs.tf</span>
+<span class="ft-file">    └── three-tier-app/</span>
+<span class="ft-file">        ├── composition.json</span>   <span class="ft-comment"># user-edited config (input)</span>
+<span class="ft-file">        ├── main.tf.j2</span>         <span class="ft-comment"># Jinja2 template</span>
+<span class="ft-file">        └── main.tf</span>            <span class="ft-comment"># rendered output — do not edit</span>
 </pre>
   </div>
 </section>
