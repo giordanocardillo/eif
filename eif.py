@@ -25,6 +25,7 @@ import re
 import sys
 from pathlib import Path
 
+import questionary
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
 
@@ -138,44 +139,30 @@ def load_inputs(matter_path: Path, env: str) -> tuple:
 
 # ── Interactive helpers ────────────────────────────────────────────────────────
 
-def _prompt(label: str, default: str | None = None) -> str:
-    suffix = f" [{default}]" if default else ""
-    try:
-        val = input(f"  {label}{suffix}: ").strip()
-    except (EOFError, KeyboardInterrupt):
-        print()
+def _ask(label: str, default: str | None = None) -> str:
+    """Free-text prompt; exits on empty with no default."""
+    val = questionary.text(label, default=default or "").ask()
+    if val is None:
         sys.exit("[eif] aborted")
-    return val if val else (default or "")
-
-
-def _require(label: str, default: str | None = None) -> str:
-    """Like _prompt but exits if the result is empty."""
-    val = _prompt(label, default)
+    val = val.strip()
     if not val:
         sys.exit(f"[eif] ERROR: {label} is required")
     return val
 
 
 def _choose(label: str, options: list[str]) -> str:
-    """Present a numbered menu and return the chosen option."""
-    print(f"  {label}:")
-    for i, opt in enumerate(options, 1):
-        print(f"    {i}) {opt}")
-    while True:
-        raw = _prompt("choice")
-        if raw.isdigit() and 1 <= int(raw) <= len(options):
-            return options[int(raw) - 1]
-        if raw in options:
-            return raw
-        print(f"  [!] enter a number 1–{len(options)} or the name directly")
+    """Arrow-key single-select."""
+    val = questionary.select(label, choices=options).ask()
+    if val is None:
+        sys.exit("[eif] aborted")
+    return val
 
 
 def _confirm(label: str, default: bool = False) -> bool:
-    hint = "[Y/n]" if default else "[y/N]"
-    val = _prompt(f"{label} {hint}").lower()
-    if not val:
-        return default
-    return val in ("y", "yes")
+    val = questionary.confirm(label, default=default).ask()
+    if val is None:
+        sys.exit("[eif] aborted")
+    return val
 
 
 def _detect_providers(repo_root: Path) -> list[str]:
@@ -230,20 +217,15 @@ def _list_molecules(provider: str, repo_root: Path) -> list[dict]:
 
 
 def _multiselect(label: str, items: list[dict]) -> list[dict]:
-    """Present a numbered list and return the user-selected subset (at least one)."""
-    print(f"  {label}:")
-    for i, item in enumerate(items, 1):
-        print(f"    {i}) {item['label']}")
+    """Space-bar checkbox multi-select; at least one item required."""
+    by_label = {item["label"]: item for item in items}
     while True:
-        raw = _prompt("select (comma-separated, e.g. 1,3)")
-        try:
-            parts = [x.strip() for x in raw.split(",") if x.strip()]
-            indices = [int(p) - 1 for p in parts]
-            if parts and all(0 <= idx < len(items) for idx in indices):
-                return [items[idx] for idx in indices]
-        except ValueError:
-            pass
-        print(f"  [!] enter comma-separated numbers from 1 to {len(items)}")
+        chosen = questionary.checkbox(label, choices=list(by_label)).ask()
+        if chosen is None:
+            sys.exit("[eif] aborted")
+        if chosen:
+            return [by_label[c] for c in chosen]
+        print("[eif] select at least one item")
 
 
 def _provider_tf_block(provider: str) -> str:
@@ -376,7 +358,7 @@ def cmd_new_atom(name_arg: str | None) -> None:
     cwd = Path.cwd()
     print("[eif] New atom\n")
 
-    name = name_arg or _require("name")
+    name = name_arg or _ask("name")
 
     providers = _detect_providers(repo_root)
     if not providers:
@@ -386,7 +368,7 @@ def cmd_new_atom(name_arg: str | None) -> None:
     categories = ATOM_CATEGORIES + ["other"]
     cat = _choose("category", categories)
     if cat == "other":
-        cat = _require("category name")
+        cat = _ask("category name")
 
     atom_dir = repo_root / "atoms" / provider / cat / name
     existing = latest_version(atom_dir)
@@ -440,7 +422,7 @@ def cmd_new_molecule(name_arg: str | None) -> None:
     cwd = Path.cwd()
     print("[eif] New molecule\n")
 
-    name = name_arg or _require("name")
+    name = name_arg or _ask("name")
 
     providers = _detect_providers(repo_root)
     if not providers:
@@ -536,7 +518,7 @@ def cmd_new_matter(name_arg: str | None) -> None:
     cwd = Path.cwd()
     print("[eif] New matter\n")
 
-    name = name_arg or _require("name")
+    name = name_arg or _ask("name")
 
     providers = _detect_providers(repo_root)
     if not providers:
