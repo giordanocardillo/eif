@@ -1,12 +1,12 @@
 <!-- EIF — Elemental Infrastructure Framework -->
 <div align="center">
 
+<img src="logo.svg" alt="EIF Logo" width="120" /><br><br>
+
 <pre>
-  ◉
   E L E M E N T A L
 I N F R A S T R U C T U R E
  F R A M E W O R K
-  ◉
 </pre>
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-4af0c4?style=flat-square)](LICENSE)
