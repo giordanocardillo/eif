@@ -10,7 +10,7 @@ terraform {
 
 # ── Atom: S3 ──────────────────────────────────────────────────────────────────
 module "s3" {
-  source = "../../../atoms/storage/s3/v1"
+  source = "../../../../atoms/aws/storage/s3/v1"
 
   bucket_name        = var.bucket_name
   versioning_enabled = var.s3_versioning_enabled
@@ -19,7 +19,7 @@ module "s3" {
 
 # ── Atom: WAF ─────────────────────────────────────────────────────────────────
 module "waf" {
-  source = "../../../atoms/security/waf/v1"
+  source = "../../../../atoms/aws/security/waf/v1"
 
   name                    = var.waf_name
   environment             = var.environment
@@ -29,7 +29,7 @@ module "waf" {
 # ── Atom: CloudFront ──────────────────────────────────────────────────────────
 # depends on: module.s3.bucket_regional_domain_name, module.waf.web_acl_arn
 module "cloudfront" {
-  source = "../../../atoms/networking/cloudfront/v1"
+  source = "../../../../atoms/aws/networking/cloudfront/v1"
 
   origin_domain_name = module.s3.bucket_regional_domain_name
   environment        = var.environment

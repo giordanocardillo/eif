@@ -1,0 +1,20 @@
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 5.0"
+    }
+  }
+  required_version = ">= 1.5"
+}
+
+provider "aws" {
+  region = "{{ aws_region }}"
+{% if assume_role_arn is defined %}
+  assume_role {
+    role_arn = "{{ assume_role_arn }}"
+  }
+{% elif profile is defined %}
+  profile = "{{ profile }}"
+{% endif %}
+}
