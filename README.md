@@ -11,9 +11,7 @@ I N F R A S T R U C T U R E
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-4af0c4?style=flat-square)](LICENSE)
 [![Terraform](https://img.shields.io/badge/Terraform-≥1.5-3a8fff?style=flat-square&logo=terraform&logoColor=white)](https://www.terraform.io/)
-[![AWS](https://img.shields.io/badge/Provider-AWS-f0884a?style=flat-square&logo=amazon-aws&logoColor=white)](https://registry.terraform.io/providers/hashicorp/aws)
-[![Azure](https://img.shields.io/badge/Provider-Azure-3a8fff?style=flat-square&logo=microsoftazure&logoColor=white)](https://registry.terraform.io/providers/hashicorp/azurerm)
-[![GCP](https://img.shields.io/badge/Provider-GCP-4af0c4?style=flat-square&logo=googlecloud&logoColor=white)](https://registry.terraform.io/providers/hashicorp/google)
+[![Provider Agnostic](https://img.shields.io/badge/Provider-Agnostic-4af0c4?style=flat-square)](https://www.terraform.io/docs/providers/)
 [![Python](https://img.shields.io/badge/Python-≥3.11-3a8fff?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![Status](https://img.shields.io/badge/Status-WIP-f0884a?style=flat-square)]()
 
@@ -31,7 +29,7 @@ Modern cloud infrastructure suffers from two opposite extremes: the **monolith t
 
 EIF proposes a third way, inspired by chemistry.
 
-Every cloud resource has its own atomic identity, composable with precision into increasingly complex structures, up to fully deployable applications. The model is simple, the naming is intentional, the hierarchy is strict.
+Every infrastructure resource has its own atomic identity, composable with precision into increasingly complex structures, up to fully deployable applications. The model is simple, the naming is intentional, the hierarchy is strict.
 
 ---
 
@@ -342,5 +340,5 @@ Apache 2.0 © [Giordano Cardillo](https://github.com/giordanocardillo)
 ---
 
 <div align="center">
-<sub>EIF · Elemental Infrastructure Framework · AWS · Azure · GCP · Terraform</sub>
+<sub>EIF · Elemental Infrastructure Framework · Provider Agnostic · Terraform</sub>
 </div>
