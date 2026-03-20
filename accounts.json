@@ -12,6 +12,34 @@
   "prod": {
     "provider": "aws",
     "aws_region": "us-east-1",
-    "assume_role_arn": "arn:aws:iam::REPLACE_WITH_PROD_ACCOUNT_ID:role/EIFDeployRole"
+    "assume_role_arn": "arn:aws:iam::REPLACE_WITH_ACCOUNT_ID:role/EIFDeployRole"
+  },
+
+  "azure-dev": {
+    "provider": "azure",
+    "subscription_id": "REPLACE_WITH_SUBSCRIPTION_ID",
+    "tenant_id": "REPLACE_WITH_TENANT_ID",
+    "client_id": "REPLACE_WITH_CLIENT_ID",
+    "client_secret": "REPLACE_WITH_CLIENT_SECRET"
+  },
+  "azure-prod": {
+    "provider": "azure",
+    "subscription_id": "REPLACE_WITH_SUBSCRIPTION_ID",
+    "tenant_id": "REPLACE_WITH_TENANT_ID",
+    "client_id": "REPLACE_WITH_CLIENT_ID",
+    "client_secret": "REPLACE_WITH_CLIENT_SECRET"
+  },
+
+  "gcp-dev": {
+    "provider": "gcp",
+    "project": "REPLACE_WITH_PROJECT_ID",
+    "region": "us-central1",
+    "credentials_file": "REPLACE_WITH_PATH_TO_SERVICE_ACCOUNT_JSON"
+  },
+  "gcp-prod": {
+    "provider": "gcp",
+    "project": "REPLACE_WITH_PROJECT_ID",
+    "region": "us-central1",
+    "credentials_file": "REPLACE_WITH_PATH_TO_SERVICE_ACCOUNT_JSON"
   }
 }
