@@ -1,8 +1,8 @@
 {
   "matter": "three-tier-app",
   "molecules": [
-    { "name": "single-page-application", "source": "molecules/single-page-application/v1" },
-    { "name": "db",                      "source": "molecules/db/v1" },
-    { "name": "lambda-svc",              "source": "molecules/lambda-svc/v1" }
+    { "name": "single-page-application", "source": "molecules/aws/single-page-application/v1" },
+    { "name": "db",                      "source": "molecules/aws/db/v1" },
+    { "name": "lambda-svc",              "source": "molecules/aws/lambda-svc/v1" }
   ]
 }

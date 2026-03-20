@@ -91,6 +91,23 @@ def load_inputs(matter_path: Path, env: str) -> tuple:
 
 # ── Commands ──────────────────────────────────────────────────────────────────
 
+def render_provider_block(account_config: dict, repo_root: Path) -> str:
+    """Render providers/<cloud>/provider.tf.j2 with the account config."""
+    provider = account_config.get("provider")
+    if not provider:
+        sys.exit("[eif] ERROR: account entry is missing a 'provider' field")
+    provider_template = repo_root / "providers" / provider / "provider.tf.j2"
+    if not provider_template.exists():
+        sys.exit(f"[eif] ERROR: no provider template found at {provider_template}")
+    j2_env = Environment(
+        loader=FileSystemLoader(str(provider_template.parent)),
+        undefined=StrictUndefined,
+        trim_blocks=True,
+        lstrip_blocks=True,
+    )
+    return j2_env.get_template("provider.tf.j2").render(**account_config)
+
+
 def cmd_render(matter_dir: str, env: str) -> None:
     matter_path = Path(matter_dir).resolve()
     account_config, composition, env_config, repo_root, _ = load_inputs(matter_path, env)
@@ -100,6 +117,7 @@ def cmd_render(matter_dir: str, env: str) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     src = resolve_sources(composition["molecules"], repo_root, output_dir)
+    provider_block = render_provider_block(account_config, repo_root)
 
     # Flat env vars (minus "account") + auto-injected environment + src lookup
     env_vars = {k: v for k, v in env_config.items() if k != "account"}
@@ -110,6 +128,7 @@ def cmd_render(matter_dir: str, env: str) -> None:
         "account": env_config["account"],
         "molecules": composition["molecules"],
         "src": src,
+        "provider_block": provider_block,
     }
 
     j2_env = Environment(

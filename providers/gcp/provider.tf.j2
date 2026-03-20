@@ -1,0 +1,17 @@
+terraform {
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = ">= 5.0"
+    }
+  }
+  required_version = ">= 1.5"
+}
+
+provider "google" {
+  project = "{{ project }}"
+  region  = "{{ region }}"
+{% if credentials_file is defined %}
+  credentials = file("{{ credentials_file }}")
+{% endif %}
+}

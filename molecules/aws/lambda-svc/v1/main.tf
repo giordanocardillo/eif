@@ -10,7 +10,7 @@ terraform {
 
 # ── Atom: Security Group ──────────────────────────────────────────────────────
 module "sg" {
-  source = "../../../atoms/security/sg/v1"
+  source = "../../../../atoms/aws/security/sg/v1"
 
   name        = "${var.function_name}-sg"
   description = "Security group for ${var.function_name} Lambda function"
@@ -21,7 +21,7 @@ module "sg" {
 # ── Atom: Lambda ──────────────────────────────────────────────────────────────
 # depends on: module.sg.security_group_id
 module "lambda" {
-  source = "../../../atoms/compute/lambda/v1"
+  source = "../../../../atoms/aws/compute/lambda/v1"
 
   function_name          = var.function_name
   runtime                = var.runtime
