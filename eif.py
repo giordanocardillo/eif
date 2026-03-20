@@ -16,20 +16,23 @@ Commands:
     eif new molecule [<name> [<provider> [<category/atom>,...  ]]]
     eif new matter   [<name> [<provider> [<molecule>,...       ]]]
 
+Install as a shell command:
+    uv tool install --editable .
+
 Examples:
-    uv run eif render                                       # fully interactive
-    uv run eif render   aws three-tier-app dev              # fully non-interactive
-    uv run eif upgrade  aws three-tier-app dev
-    uv run eif plan     aws three-tier-app dev
-    uv run eif apply    aws three-tier-app dev
-    uv run eif destroy  aws three-tier-app dev
-    uv run eif rollback aws three-tier-app dev
-    uv run eif init backend aws three-tier-app dev
-    uv run eif add account
-    uv run eif new atom
-    uv run eif new atom     my-resource aws networking
-    uv run eif new molecule my-service  aws storage/s3,networking/cloudfront
-    uv run eif new matter   my-app      aws single-page-application,db
+    eif render                                       # fully interactive
+    eif render   aws three-tier-app dev              # fully non-interactive
+    eif upgrade  aws three-tier-app dev
+    eif plan     aws three-tier-app dev
+    eif apply    aws three-tier-app dev
+    eif destroy  aws three-tier-app dev
+    eif rollback aws three-tier-app dev
+    eif init backend aws three-tier-app dev
+    eif add account
+    eif new atom
+    eif new atom     my-resource aws networking
+    eif new molecule my-service  aws storage/s3,networking/cloudfront
+    eif new matter   my-app      aws single-page-application,db
 """
 
 import datetime

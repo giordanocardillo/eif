@@ -276,33 +276,38 @@ uv run eif upgrade matters/three-tier-app/aws dev
 ### Install
 
 ```bash
-uv sync
+# install eif as a shell command (recommended)
+uv tool install --editable .
 ```
+
+This makes `eif` available globally on your PATH. The `--editable` flag means changes to `eif.py` take effect immediately without reinstalling.
+
+> **Without a global install:** `uv run eif <command>` works the same way from inside the repo.
 
 ### Render only
 
 ```bash
 # interactive — select provider, matter, and environment from menus
-uv run eif render
+eif render
 
 # non-interactive — pass provider, matter, environment directly
-uv run eif render aws three-tier-app dev
+eif render aws three-tier-app dev
 ```
 
 ### Full deployment lifecycle
 
 ```bash
 # plan — render + terraform plan (no changes applied)
-uv run eif plan aws three-tier-app dev
+eif plan aws three-tier-app dev
 
 # apply — render + terraform init + apply + snapshot on success
-uv run eif apply aws three-tier-app dev
+eif apply aws three-tier-app dev
 
 # destroy — terraform destroy against the last rendered output
-uv run eif destroy aws three-tier-app dev
+eif destroy aws three-tier-app dev
 
 # rollback — pick a previous snapshot and re-apply
-uv run eif rollback aws three-tier-app dev
+eif rollback aws three-tier-app dev
 ```
 
 All commands support interactive mode (no args) and non-interactive mode (`<provider> <matter> <env>`).
@@ -311,20 +316,17 @@ All commands support interactive mode (no args) and non-interactive mode (`<prov
 
 ```bash
 # set up state bucket / container / DynamoDB table via cloud CLI
-uv run eif init backend aws three-tier-app dev
+eif init backend aws three-tier-app dev
 
 # add a new account entry to accounts.json (one-time, per account)
-uv run eif add account
+eif add account
 ```
 
 ### Upgrade molecule versions
 
 ```bash
-# interactive
-uv run eif upgrade
-
-# non-interactive
-uv run eif upgrade aws three-tier-app dev
+eif upgrade
+eif upgrade aws three-tier-app dev
 ```
 
 ### Scaffold new components
@@ -333,16 +335,16 @@ The `eif new` commands interactively scaffold atoms, molecules, and matters. The
 
 ```bash
 # scaffold a new atom (prompts: name, provider, category)
-uv run eif new atom
-uv run eif new atom my-service       # name pre-filled
+eif new atom
+eif new atom my-service       # name pre-filled
 
 # scaffold a new molecule (prompts: name, provider)
-uv run eif new molecule
-uv run eif new molecule my-service
+eif new molecule
+eif new molecule my-service
 
 # scaffold a new matter (prompts: name, provider)
-uv run eif new matter
-uv run eif new matter my-app
+eif new matter
+eif new matter my-app
 ```
 
 If the atom or molecule already exists the command reports the latest version and asks whether to create the next one (e.g. `v2`). Each scaffold emits starter `main.tf`, `variables.tf`, and `outputs.tf` (atoms/molecules) or `composition.json`, `dev.example.json`, `prod.example.json`, and `main.tf.j2` (matters).
