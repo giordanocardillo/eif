@@ -398,27 +398,19 @@ Rollback restores a previous rendered `main.tf` and re-applies it. Terraform com
 
 ## ◌ Roadmap
 
-- [x] Atom library (AWS): `s3`, `cloudfront`, `waf`, `lambda`, `rds`, `sg`
-- [x] Molecule library (AWS): `single-page-application`, `db`, `lambda-svc`
-- [x] Matter template: `three-tier-app` (AWS — `single-page-application` + `db` + `lambda-svc`)
-- [x] Jinja2 → HCL renderer (`eif`)
-- [x] Multi-environment support (`dev`, `test`, `prod`)
-- [x] Multi-account support (profile + assume_role)
-- [x] Versioned atoms and molecules (`v1/`, upgrade CLI)
-- [x] Multi-cloud provider abstraction (AWS, Azure, GCP — pluggable)
-- [x] Atom + molecule library: Azure (`blob`, `frontdoor` → `single-page-application`)
-- [x] Atom + molecule library: GCP (`gcs`, `cdn`, `armor` → `single-page-application`)
-- [x] Matter template: `single-page-application` (AWS, Azure, GCP)
-- [x] Scaffolding CLI: `eif new atom`, `eif new molecule`, `eif new matter`
-- [x] Deployment lifecycle: `eif plan`, `eif apply`, `eif destroy`, `eif rollback`
-- [x] Remote state management: S3 / Azure Blob / GCS backends with versioning
-- [x] Snapshot history: per-apply render snapshots, rollback to any previous config
-- [x] Backend bootstrap: `eif init backend` (creates bucket + DynamoDB lock table)
-- [ ] Atom library (AWS): compute (`ecs`), networking (`api-gateway`)
-- [ ] Matter template: `serverless-api`
+- [x] Jinja2 → HCL renderer (`eif render`)
+- [x] Multi-environment and multi-account support
+- [x] Multi-cloud provider abstraction (pluggable `providers/<cloud>/`)
+- [x] Versioned atoms and molecules (`v1/`, `eif upgrade`)
+- [x] Scaffolding CLI (`eif new atom`, `eif new molecule`, `eif new matter`)
+- [x] Deployment lifecycle (`eif plan`, `eif apply`, `eif destroy`, `eif rollback`)
+- [x] Remote state management (S3 / Azure Blob / GCS backends)
+- [x] Snapshot history and rollback
+- [x] Backend bootstrap (`eif init backend`)
+- [x] Vulnerability scanning (`eif scan` via Trivy — auto-runs in plan/apply)
 - [ ] CI/CD pipeline examples (GitHub Actions / Azure DevOps)
-- [ ] Tagging strategy module
-- [ ] Cost estimation per matter
+- [ ] Cost estimation integration
+- [ ] OPA/policy-as-code hook before apply
 
 ---
 
