@@ -654,11 +654,11 @@
   <div class="file-tree reveal" style="margin-top:48px;">
 <pre>
 <span class="ft-dir">providers/</span>
-<span class="ft-atom">├── aws/</span>
+<span class="ft-file">├── aws/</span>
 <span class="ft-file">│   └── provider.tf.j2</span>    <span class="ft-comment"># terraform{} + provider "aws" — profile or assume_role</span>
-<span class="ft-molecule">├── azure/</span>
+<span class="ft-file">├── azure/</span>
 <span class="ft-file">│   └── provider.tf.j2</span>    <span class="ft-comment"># terraform{} + provider "azurerm" — subscription + tenant</span>
-<span class="ft-matter">└── gcp/</span>
+<span class="ft-file">└── gcp/</span>
 <span class="ft-file">    └── provider.tf.j2</span>    <span class="ft-comment"># terraform{} + provider "google" — project + region</span>
 </pre>
   </div>
@@ -729,12 +729,12 @@
 <span class="ft-file">├── pyproject.toml</span>              <span class="ft-comment"># Python project (uv / hatchling)</span>
 <span class="ft-comment">│</span>
 <span class="ft-file">├── providers/</span>                  <span class="ft-comment"># Pluggable cloud provider templates</span>
-<span class="ft-atom">│   ├── aws/provider.tf.j2</span>
-<span class="ft-molecule">│   ├── azure/provider.tf.j2</span>
-<span class="ft-matter">│   └── gcp/provider.tf.j2</span>
+<span class="ft-file">│   ├── aws/provider.tf.j2</span>
+<span class="ft-file">│   ├── azure/provider.tf.j2</span>
+<span class="ft-file">│   └── gcp/provider.tf.j2</span>
 <span class="ft-comment">│</span>
 <span class="ft-atom">├── atoms/</span>                     <span class="ft-comment"># Atomic cloud services — namespaced + versioned</span>
-<span class="ft-atom">│   ├── aws/</span>
+<span class="ft-file">│   ├── aws/</span>
 <span class="ft-atom">│   │   ├── compute/lambda/v1/</span>
 <span class="ft-atom">│   │   ├── networking/cloudfront/v1/</span>
 <span class="ft-atom">│   │   ├── storage/s3/v1/ · storage/rds/v1/</span>
@@ -743,7 +743,7 @@
 <span class="ft-file">│   └── gcp/</span>                   <span class="ft-comment"># contributions welcome</span>
 <span class="ft-comment">│</span>
 <span class="ft-molecule">├── molecules/</span>                  <span class="ft-comment"># Blueprints — namespaced + versioned</span>
-<span class="ft-molecule">│   ├── aws/</span>
+<span class="ft-file">│   ├── aws/</span>
 <span class="ft-file">│   │   ├── single-page-application/v1/</span>  <span class="ft-comment"># s3 + cloudfront + waf</span>
 <span class="ft-file">│   │   ├── db/v1/</span>             <span class="ft-comment"># rds + sg</span>
 <span class="ft-file">│   │   └── lambda-svc/v1/</span>    <span class="ft-comment"># lambda + sg</span>
