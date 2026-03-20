@@ -17,7 +17,7 @@ I N F R A S T R U C T U R E
 
 **Build infrastructure the way nature builds matter — atom by atom.**
 
-[Philosophy](#-philosophy) · [Model](#-the-model) · [Structure](#-structure) · [Renderer](#-renderer) · [Environments](#-environments) · [Usage](#-usage) · [Roadmap](#-roadmap)
+[Philosophy](#-philosophy) · [Model](#-the-model) · [Structure](#-structure) · [Renderer](#-renderer) · [Environments](#-environments) · [Versioning](#-versioning) · [Usage](#-usage) · [Roadmap](#-roadmap)
 
 </div>
 
@@ -69,7 +69,7 @@ A combination of atoms forming a coherent architectural pattern. Intra-molecule 
   "molecules": [
     {
       "name": "swa",
-      "source": "molecules/swa",
+      "source": "molecules/swa/v1",
       "config": {
         "environment": "prod",
         "bucket_name": "my-app-assets-prod",
@@ -94,20 +94,29 @@ eif/
 │
 ├── atoms/                          # Atomic AWS services (plain HCL)
 │   ├── compute/
-│   │   └── lambda/                 # main.tf · variables.tf · outputs.tf
+│   │   └── lambda/
+│   │       └── v1/                 # main.tf · variables.tf · outputs.tf
 │   ├── networking/
 │   │   └── cloudfront/
+│   │       └── v1/
 │   ├── storage/
 │   │   ├── s3/
+│   │   │   └── v1/
 │   │   └── rds/
+│   │       └── v1/
 │   └── security/
 │       ├── waf/
+│       │   └── v1/
 │       └── sg/
+│           └── v1/
 │
 ├── molecules/                      # Architectural blueprints
-│   ├── swa/                        # s3 + cloudfront + waf
-│   ├── db/                         # rds + sg
-│   └── lambda-svc/                 # lambda + sg
+│   ├── swa/
+│   │   └── v1/                     # s3/v1 + cloudfront/v1 + waf/v1
+│   ├── db/
+│   │   └── v1/                     # rds/v1 + sg/v1
+│   └── lambda-svc/
+│       └── v1/                     # lambda/v1 + sg/v1
 │
 └── matter/                         # Deployable applications
     └── three-tier-app/
@@ -176,6 +185,41 @@ provider "aws" {
 
 ---
 
+## ◑ Versioning
+
+Atoms and molecules are versioned via subdirectories (`v1/`, `v2/`, ...). This guarantees that matter already in production is never broken by new feature work.
+
+**The rule:**
+
+| Change type | Action |
+|---|---|
+| Bug fix, new optional variable | Edit in place within the existing version |
+| Breaking change (remove var, change type, restructure outputs) | Create a new version directory alongside the old one |
+
+**Example — adding a breaking change to an atom:**
+
+```
+atoms/storage/s3/
+  v1/   ← existing production matter stays pinned here
+  v2/   ← new interface; new molecules reference this
+```
+
+The molecule that needs the new feature gets its own `v2/` referencing `atoms/storage/s3/v2`. All existing matter compositions continue to pin `molecules/swa/v1` and are completely unaffected.
+
+Compositions pin to an explicit version:
+
+```json
+{ "name": "swa", "source": "molecules/swa/v1", ... }
+```
+
+To upgrade a composition to the latest available versions:
+
+```bash
+uv run eif upgrade matter/three-tier-app dev
+```
+
+---
+
 ## ▶ Usage
 
 ### Prerequisites
@@ -194,12 +238,19 @@ uv sync
 
 ```bash
 # render for a specific environment
-uv run eif matter/three-tier-app dev
-uv run eif matter/three-tier-app prod
+uv run eif render matter/three-tier-app dev
+uv run eif render matter/three-tier-app prod
 
 # deploy
 terraform -chdir=matter/three-tier-app/.rendered/dev init
 terraform -chdir=matter/three-tier-app/.rendered/dev apply
+```
+
+### Upgrade molecule versions
+
+```bash
+# bump all pinned molecule versions to latest in a composition
+uv run eif upgrade matter/three-tier-app dev
 ```
 
 Matter is the only deployment entry point. Atoms and molecules are internal — use them as building blocks when authoring new matter templates, never deploy them directly.
@@ -214,6 +265,7 @@ Matter is the only deployment entry point. Atoms and molecules are internal — 
 - [x] Jinja2 → HCL renderer (`eif`)
 - [x] Multi-environment support (`dev`, `test`, `prod`)
 - [x] Multi-account support (profile + assume_role)
+- [x] Versioned atoms and molecules (`v1/`, upgrade CLI)
 - [ ] Atom library: compute (`ecs`), networking (`api-gateway`)
 - [ ] Matter template: `serverless-api`
 - [ ] Remote state management per matter/environment
