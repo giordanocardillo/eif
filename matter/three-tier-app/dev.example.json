@@ -1,25 +1,25 @@
 {
   "account": "dev",
 
-  "bucket_name": "three-tier-app-assets-dev",
+  "bucket_name": "YOUR_APP_NAME-assets-dev",
   "s3_versioning_enabled": false,
   "cloudfront_price_class": "PriceClass_100",
-  "waf_name": "three-tier-app-waf-dev",
+  "waf_name": "YOUR_APP_NAME-waf-dev",
   "waf_managed_rule_group": "AWSManagedRulesCommonRuleSet",
 
-  "identifier": "three-tier-app-db-dev",
-  "db_name": "app",
-  "db_username": "admin",
+  "identifier": "YOUR_APP_NAME-db-dev",
+  "db_name": "YOUR_DB_NAME",
+  "db_username": "YOUR_DB_USERNAME",
   "engine": "postgres",
   "engine_version": "15",
   "instance_class": "db.t3.micro",
   "multi_az": false,
 
-  "vpc_id": "REPLACE_WITH_DEV_VPC_ID",
-  "subnet_ids": ["REPLACE_WITH_DEV_SUBNET_ID"],
+  "vpc_id": "YOUR_VPC_ID",
+  "subnet_ids": ["YOUR_SUBNET_ID"],
   "allowed_cidr_blocks": ["10.0.0.0/8"],
 
-  "function_name": "three-tier-app-api-dev",
+  "function_name": "YOUR_APP_NAME-api-dev",
   "runtime": "python3.12",
   "handler": "handler.lambda_handler",
   "memory_mb": 128,

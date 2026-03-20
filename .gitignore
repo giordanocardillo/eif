@@ -1,3 +1,9 @@
+# EIF — real config files (copy from *.example.json and fill in values)
+accounts.json
+matter/**/dev.json
+matter/**/test.json
+matter/**/prod.json
+
 # EIF rendered outputs
 matter/**/.rendered/
 
