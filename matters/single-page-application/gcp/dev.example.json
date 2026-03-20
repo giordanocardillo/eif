@@ -1,0 +1,9 @@
+{
+  "account": "gcp-dev",
+
+  "bucket_name": "YOUR_APP_NAME-assets-dev",
+  "location": "US",
+  "cdn_name": "YOUR_APP_NAME-cdn-dev",
+  "armor_policy_name": "YOUR_APP_NAME-armor-dev",
+  "blocked_ip_ranges": []
+}

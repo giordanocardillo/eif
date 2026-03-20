@@ -1,0 +1,21 @@
+{{ provider_block }}
+# ── Molecules ─────────────────────────────────────────────────────────────────
+
+module "single-page-application" {
+  source = "{{ src['single-page-application'] }}"
+
+  environment            = "{{ environment }}"
+  bucket_name            = "{{ bucket_name }}"
+  s3_versioning_enabled  = {{ s3_versioning_enabled | lower }}
+  cloudfront_price_class = "{{ cloudfront_price_class }}"
+  waf_name               = "{{ waf_name }}"
+  waf_managed_rule_group = "{{ waf_managed_rule_group }}"
+}
+
+# ── Outputs ───────────────────────────────────────────────────────────────────
+{% for mol in molecules %}
+output "{{ mol.name | replace('-', '_') }}_outputs" {
+  description = "Outputs from the {{ mol.name }} molecule."
+  value       = module.{{ mol.name }}
+}
+{% endfor %}

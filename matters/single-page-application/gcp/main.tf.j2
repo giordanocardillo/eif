@@ -1,0 +1,21 @@
+{{ provider_block }}
+# ── Molecules ─────────────────────────────────────────────────────────────────
+
+module "single-page-application" {
+  source = "{{ src['single-page-application'] }}"
+
+  environment       = "{{ environment }}"
+  bucket_name       = "{{ bucket_name }}"
+  location          = "{{ location }}"
+  cdn_name          = "{{ cdn_name }}"
+  armor_policy_name = "{{ armor_policy_name }}"
+  blocked_ip_ranges = [{{ blocked_ip_ranges | map('tojson') | join(', ') }}]
+}
+
+# ── Outputs ───────────────────────────────────────────────────────────────────
+{% for mol in molecules %}
+output "{{ mol.name | replace('-', '_') }}_outputs" {
+  description = "Outputs from the {{ mol.name }} molecule."
+  value       = module.{{ mol.name }}
+}
+{% endfor %}
