@@ -1114,9 +1114,65 @@ def cmd_version(_args: list[str]) -> None:
     print(f"eif {_pkg_version('eif')}")
 
 
+# ── Commands (list) ────────────────────────────────────────────────────────────
+
+def cmd_list(args: list[str]) -> None:
+    SUBS = ("providers", "atoms", "molecules", "matters")
+    if not args or args[0] not in SUBS:
+        sys.exit("Usage:\n  eif list providers|atoms|molecules|matters  [<provider>]")
+
+    repo_root = find_repo_root(Path.cwd())
+    sub       = args[0]
+    provider_filter = args[1] if len(args) > 1 else None
+
+    if sub == "providers":
+        providers = _detect_providers(repo_root)
+        if not providers:
+            print("[eif] no providers found")
+            return
+        for p in providers:
+            print(p)
+
+    elif sub == "atoms":
+        providers = [provider_filter] if provider_filter else _detect_providers(repo_root)
+        for provider in providers:
+            atoms = _list_atoms(provider, repo_root)
+            if not atoms:
+                continue
+            print(provider)
+            for a in atoms:
+                print(f"  {a['category']}/{a['name']:<30} {a['version']}")
+
+    elif sub == "molecules":
+        providers = [provider_filter] if provider_filter else _detect_providers(repo_root)
+        for provider in providers:
+            mols = _list_molecules(provider, repo_root)
+            if not mols:
+                continue
+            print(provider)
+            for m in mols:
+                print(f"  {m['name']:<40} {m['version']}")
+
+    elif sub == "matters":
+        matters_dir = repo_root / "matters"
+        if not matters_dir.is_dir():
+            print("[eif] no matters found")
+            return
+        for matter in sorted(matters_dir.iterdir()):
+            if not matter.is_dir():
+                continue
+            providers = sorted(
+                d.name for d in matter.iterdir()
+                if d.is_dir() and (provider_filter is None or d.name == provider_filter)
+            )
+            if providers:
+                print(f"{matter.name:<40} {' '.join(providers)}")
+
+
 USAGE = (
     "Usage:\n"
     "  eif version\n"
+    "  eif list providers|atoms|molecules|matters  [<provider>]\n"
     "  eif render   [<provider> <matter> <env>]\n"
     "  eif upgrade  [<provider> <matter> <env>]\n"
     "  eif plan     [<provider> <matter> <env>]\n"
@@ -1139,6 +1195,7 @@ def main() -> None:
     cmd = args[0]
     CMDS = {
         "version":  cmd_version,
+        "list":     cmd_list,
         "render":   cmd_render,
         "upgrade":  cmd_upgrade,
         "plan":     cmd_plan,
