@@ -298,6 +298,26 @@ terraform -chdir=matters/three-tier-app/aws/.rendered/dev apply
 uv run eif upgrade matters/three-tier-app/aws dev
 ```
 
+### Scaffold new components
+
+The `eif new` commands interactively scaffold atoms, molecules, and matters. They detect available providers from `providers/`, check for existing versions, and create the correct directory structure with starter files.
+
+```bash
+# scaffold a new atom (prompts: name, provider, category)
+uv run eif new atom
+uv run eif new atom my-service       # name pre-filled
+
+# scaffold a new molecule (prompts: name, provider)
+uv run eif new molecule
+uv run eif new molecule my-service
+
+# scaffold a new matter (prompts: name, provider)
+uv run eif new matter
+uv run eif new matter my-app
+```
+
+If the atom or molecule already exists the command reports the latest version and asks whether to create the next one (e.g. `v2`). Each scaffold emits starter `main.tf`, `variables.tf`, and `outputs.tf` (atoms/molecules) or `composition.json`, `dev.example.json`, `prod.example.json`, and `main.tf.j2` (matters).
+
 Matter is the only deployment entry point. Atoms and molecules are internal — use them as building blocks when authoring new matter templates, never deploy them directly.
 
 ---
@@ -315,6 +335,7 @@ Matter is the only deployment entry point. Atoms and molecules are internal — 
 - [x] Atom + molecule library: Azure (`blob`, `cdn` → `single-page-application`)
 - [x] Atom + molecule library: GCP (`gcs`, `cdn`, `armor` → `single-page-application`)
 - [x] Matter template: `single-page-application` (AWS, Azure, GCP)
+- [x] Scaffolding CLI: `eif new atom`, `eif new molecule`, `eif new matter`
 - [ ] Atom library (AWS): compute (`ecs`), networking (`api-gateway`)
 - [ ] Matter template: `serverless-api`
 - [ ] Remote state management per matter/environment
