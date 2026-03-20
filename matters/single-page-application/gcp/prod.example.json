@@ -1,0 +1,9 @@
+{
+  "account": "gcp-prod",
+
+  "bucket_name": "YOUR_APP_NAME-assets-prod",
+  "location": "US",
+  "cdn_name": "YOUR_APP_NAME-cdn-prod",
+  "armor_policy_name": "YOUR_APP_NAME-armor-prod",
+  "blocked_ip_ranges": []
+}

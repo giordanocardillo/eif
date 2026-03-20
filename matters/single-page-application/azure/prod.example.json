@@ -1,0 +1,12 @@
+{
+  "account": "azure-prod",
+
+  "resource_group_name": "YOUR_RESOURCE_GROUP",
+  "location": "West Europe",
+  "storage_account_name": "YOUR_STORAGE_ACCOUNT_NAME",
+  "account_tier": "Standard",
+  "account_replication_type": "GRS",
+  "cdn_profile_name": "YOUR_APP_NAME-cdn-prod",
+  "cdn_endpoint_name": "YOUR_APP_NAME-endpoint-prod",
+  "cdn_sku": "Standard_Microsoft"
+}

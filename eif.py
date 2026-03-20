@@ -8,9 +8,9 @@ Commands:
     eif upgrade <matter-dir> <env>    Bump all molecule sources to their latest version
 
 Examples:
-    uv run eif render  matter/three-tier-app dev
-    uv run eif render  matter/three-tier-app prod
-    uv run eif upgrade matter/three-tier-app dev
+    uv run eif render  matters/three-tier-app dev
+    uv run eif render  matters/three-tier-app prod
+    uv run eif upgrade matters/three-tier-app dev
 """
 
 import json

@@ -1,0 +1,24 @@
+{{ provider_block }}
+# ── Molecules ─────────────────────────────────────────────────────────────────
+
+module "single-page-application" {
+  source = "{{ src['single-page-application'] }}"
+
+  environment              = "{{ environment }}"
+  resource_group_name      = "{{ resource_group_name }}"
+  location                 = "{{ location }}"
+  storage_account_name     = "{{ storage_account_name }}"
+  account_tier             = "{{ account_tier }}"
+  account_replication_type = "{{ account_replication_type }}"
+  cdn_profile_name         = "{{ cdn_profile_name }}"
+  cdn_endpoint_name        = "{{ cdn_endpoint_name }}"
+  cdn_sku                  = "{{ cdn_sku }}"
+}
+
+# ── Outputs ───────────────────────────────────────────────────────────────────
+{% for mol in molecules %}
+output "{{ mol.name | replace('-', '_') }}_outputs" {
+  description = "Outputs from the {{ mol.name }} molecule."
+  value       = module.{{ mol.name }}
+}
+{% endfor %}

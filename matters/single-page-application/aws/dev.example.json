@@ -1,0 +1,9 @@
+{
+  "account": "dev",
+
+  "bucket_name": "YOUR_APP_NAME-assets-dev",
+  "s3_versioning_enabled": false,
+  "cloudfront_price_class": "PriceClass_100",
+  "waf_name": "YOUR_APP_NAME-waf-dev",
+  "waf_managed_rule_group": "AWSManagedRulesCommonRuleSet"
+}

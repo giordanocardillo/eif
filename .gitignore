@@ -1,11 +1,11 @@
 # EIF — real config files (copy from *.example.json and fill in values)
 accounts.json
-matter/**/dev.json
-matter/**/test.json
-matter/**/prod.json
+matters/**/dev.json
+matters/**/test.json
+matters/**/prod.json
 
 # EIF rendered outputs
-matter/**/.rendered/
+matters/**/.rendered/
 
 # Terraform
 **/.terraform/

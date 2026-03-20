@@ -1,0 +1,6 @@
+{
+  "matter": "single-page-application",
+  "molecules": [
+    { "name": "single-page-application", "source": "molecules/azure/single-page-application/v1" }
+  ]
+}
