@@ -547,7 +547,7 @@
     <a href="#hierarchy" class="btn btn-primary">Explore the Model</a>
     <a href="#structure" class="btn btn-secondary">View Structure →</a>
   </div>
-  <span class="code-pill">uv run eif matter/three-tier-app</span>
+  <span class="code-pill">uv run eif render matters/three-tier-app/aws dev</span>
 </div>
 
 <div class="divider"></div>
@@ -596,9 +596,13 @@
       <div class="h-card-example">
         <span class="hi">atoms/aws/compute/lambda/v1/</span>
         <span class="hi">atoms/aws/networking/cloudfront/v1/</span>
-        <span class="hi">atoms/aws/storage/s3/v1/</span>
-        <span class="hi">atoms/aws/security/waf/v1/</span>
-        <span style="color:#3a4a6a">atoms/&lt;cloud&gt;/  ← any provider</span>
+        <span class="hi">atoms/aws/storage/s3/v1/ · rds/v1/</span>
+        <span class="hi">atoms/aws/security/waf/v1/ · sg/v1/</span>
+        <span class="hi">atoms/azure/storage/blob/v1/</span>
+        <span class="hi">atoms/azure/networking/cdn/v1/</span>
+        <span class="hi">atoms/gcp/storage/gcs/v1/</span>
+        <span class="hi">atoms/gcp/networking/cdn/v1/</span>
+        <span class="hi">atoms/gcp/security/armor/v1/</span>
       </div>
     </div>
 
@@ -617,7 +621,10 @@
         <span>  ├── rds/v1 + sg/v1</span>
         <span class="hi">molecules/aws/lambda-svc/v1/</span>
         <span>  ├── lambda/v1 + sg/v1</span>
-        <span style="color:#3a4a6a">molecules/&lt;cloud&gt;/  ← any provider</span>
+        <span class="hi">molecules/azure/single-page-application/v1/</span>
+        <span>  ├── blob/v1 + cdn/v1</span>
+        <span class="hi">molecules/gcp/single-page-application/v1/</span>
+        <span>  ├── gcs/v1 + cdn/v1 + armor/v1</span>
       </div>
     </div>
 
@@ -629,12 +636,13 @@
         A complete application composed of molecules. Structure is declared once in <code>composition.json</code>; each <code>&lt;env&gt;.json</code> is a flat pool of variables — no per-molecule grouping, no repeated <code>environment</code> key (injected automatically). The template is the wiring layer.
       </p>
       <div class="h-card-example">
-        <span class="hi">matter/three-tier-app/</span>
+        <span class="hi">matters/three-tier-app/aws/</span>
         <span>  ├── composition.json</span>
-        <span>  ├── dev.json</span>
-        <span>  ├── test.json</span>
-        <span>  ├── prod.json</span>
+        <span>  ├── dev.json · test.json · prod.json</span>
         <span>  └── main.tf.j2</span>
+        <span class="hi">matters/single-page-application/aws/</span>
+        <span class="hi">matters/single-page-application/azure/</span>
+        <span class="hi">matters/single-page-application/gcp/</span>
       </div>
     </div>
   </div>
@@ -700,11 +708,11 @@
   <div class="file-tree reveal" style="margin-top:32px;">
 <pre>
 <span class="ft-comment"># upgrade a matter composition to latest molecule versions</span>
-<span style="color:var(--accent)">uv run eif upgrade</span> matter/three-tier-app dev
+<span style="color:var(--accent)">uv run eif upgrade</span> matters/three-tier-app/aws dev
 
 <span class="ft-comment"># [eif] upgraded  "molecules/aws/single-page-application/v1" → "molecules/aws/single-page-application/v2"</span>
 <span class="ft-comment"># [eif] up-to-date "molecules/aws/db/v1"</span>
-<span class="ft-comment"># [eif] wrote     → matter/three-tier-app/composition.json</span>
+<span class="ft-comment"># [eif] wrote     → matters/three-tier-app/aws/composition.json</span>
 </pre>
   </div>
 </section>
@@ -739,24 +747,32 @@
 <span class="ft-atom">│   │   ├── networking/cloudfront/v1/</span>
 <span class="ft-atom">│   │   ├── storage/s3/v1/ · storage/rds/v1/</span>
 <span class="ft-atom">│   │   └── security/waf/v1/ · security/sg/v1/</span>
-<span class="ft-file">│   ├── azure/</span>                 <span class="ft-comment"># contributions welcome</span>
-<span class="ft-file">│   └── gcp/</span>                   <span class="ft-comment"># contributions welcome</span>
+<span class="ft-file">│   ├── azure/</span>
+<span class="ft-atom">│   │   ├── storage/blob/v1/</span>
+<span class="ft-atom">│   │   └── networking/cdn/v1/</span>
+<span class="ft-file">│   └── gcp/</span>
+<span class="ft-atom">│       ├── storage/gcs/v1/</span>
+<span class="ft-atom">│       ├── networking/cdn/v1/</span>
+<span class="ft-atom">│       └── security/armor/v1/</span>
 <span class="ft-comment">│</span>
 <span class="ft-molecule">├── molecules/</span>                  <span class="ft-comment"># Blueprints — namespaced + versioned</span>
 <span class="ft-file">│   ├── aws/</span>
-<span class="ft-file">│   │   ├── single-page-application/v1/</span>  <span class="ft-comment"># s3 + cloudfront + waf</span>
-<span class="ft-file">│   │   ├── db/v1/</span>             <span class="ft-comment"># rds + sg</span>
-<span class="ft-file">│   │   └── lambda-svc/v1/</span>    <span class="ft-comment"># lambda + sg</span>
-<span class="ft-file">│   ├── azure/</span>                 <span class="ft-comment"># contributions welcome</span>
-<span class="ft-file">│   └── gcp/</span>                   <span class="ft-comment"># contributions welcome</span>
+<span class="ft-molecule">│   │   ├── single-page-application/v1/</span>  <span class="ft-comment"># s3 + cloudfront + waf</span>
+<span class="ft-molecule">│   │   ├── db/v1/</span>             <span class="ft-comment"># rds + sg</span>
+<span class="ft-molecule">│   │   └── lambda-svc/v1/</span>    <span class="ft-comment"># lambda + sg</span>
+<span class="ft-file">│   ├── azure/</span>
+<span class="ft-molecule">│   │   └── single-page-application/v1/</span>  <span class="ft-comment"># blob + cdn</span>
+<span class="ft-file">│   └── gcp/</span>
+<span class="ft-molecule">│       └── single-page-application/v1/</span>  <span class="ft-comment"># gcs + cdn + armor</span>
 <span class="ft-comment">│</span>
-<span class="ft-matter">└── matter/</span>                     <span class="ft-comment"># Deployable applications</span>
-<span class="ft-file">    └── three-tier-app/</span>
-<span class="ft-file">        ├── composition.json</span>   <span class="ft-comment"># molecule list + pinned versions (stable)</span>
-<span class="ft-file">        ├── dev.json</span>           <span class="ft-comment"># flat variable pool for dev</span>
-<span class="ft-file">        ├── test.json</span>          <span class="ft-comment"># flat variable pool for test</span>
-<span class="ft-file">        ├── prod.json</span>          <span class="ft-comment"># flat variable pool for prod</span>
-<span class="ft-file">        └── main.tf.j2</span>         <span class="ft-comment"># Jinja2 template → .rendered/&lt;env&gt;/main.tf</span>
+<span class="ft-matter">└── matters/</span>                    <span class="ft-comment"># Deployable applications</span>
+<span class="ft-file">    ├── three-tier-app/</span>
+<span class="ft-matter">    │   └── aws/</span>
+<span class="ft-file">    │       ├── composition.json</span>   <span class="ft-comment"># molecule list + pinned versions</span>
+<span class="ft-file">    │       ├── dev.json · test.json · prod.json</span>
+<span class="ft-file">    │       └── main.tf.j2</span>
+<span class="ft-file">    └── single-page-application/</span>
+<span class="ft-matter">        ├── aws/  ├── azure/  └── gcp/</span>
 </pre>
   </div>
 </section>
