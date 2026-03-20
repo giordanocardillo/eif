@@ -575,7 +575,7 @@
         Molecules are composed by matter and are never deployed directly.
       </p>
       <div class="h-card-example">
-        <span class="hi">molecules/swa/v1/</span>
+        <span class="hi">molecules/single-page-application/v1/</span>
         <span>  ├── s3/v1 + cloudfront/v1 + waf/v1</span>
         <span class="hi">molecules/db/v1/</span>
         <span>  ├── rds/v1 + sg/v1</span>
@@ -629,7 +629,7 @@
 <span class="ft-comment"># upgrade a matter composition to latest molecule versions</span>
 <span style="color:var(--accent)">uv run eif upgrade</span> matter/three-tier-app dev
 
-<span class="ft-comment"># [eif] upgraded  "molecules/swa/v1" → "molecules/swa/v2"</span>
+<span class="ft-comment"># [eif] upgraded  "molecules/single-page-application/v1" → "molecules/single-page-application/v2"</span>
 <span class="ft-comment"># [eif] up-to-date "molecules/db/v1"</span>
 <span class="ft-comment"># [eif] wrote     → matter/three-tier-app/dev.json</span>
 </pre>
@@ -668,7 +668,7 @@
 <span class="ft-file">│       └── sg/v1/</span>
 <span class="ft-comment">│</span>
 <span class="ft-molecule">├── molecules/</span>                  <span class="ft-comment"># Blueprints — versioned</span>
-<span class="ft-file">│   ├── swa/v1/</span>                <span class="ft-comment"># s3/v1 + cloudfront/v1 + waf/v1</span>
+<span class="ft-file">│   ├── single-page-application/v1/</span>                <span class="ft-comment"># s3/v1 + cloudfront/v1 + waf/v1</span>
 <span class="ft-file">│   ├── db/v1/</span>                 <span class="ft-comment"># rds/v1 + sg/v1</span>
 <span class="ft-file">│   └── lambda-svc/v1/</span>        <span class="ft-comment"># lambda/v1 + sg/v1</span>
 <span class="ft-comment">│</span>
