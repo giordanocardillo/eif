@@ -60,26 +60,45 @@ A combination of atoms forming a coherent architectural pattern. Intra-molecule 
 ### ◆ Matter — Level 03
 > *The only user-facing level.*
 
-**Matter is the sole entry point for every deployment.** Even a deployment using a single molecule is expressed as a matter. Each matter has one JSON composition file per environment. The `eif` renderer merges it with the account config and produces ready-to-apply HCL.
+**Matter is the sole entry point for every deployment.** Even a deployment using a single molecule is expressed as a matter. Each matter has two types of input file:
+
+- **`composition.json`** — stable structure: which molecules to include and which version to pin. Shared across all environments and only changes when the architecture changes.
+- **`<env>.json`** — per-environment: the AWS account to use and the sizing/config for each molecule.
 
 ```json
+// composition.json — structure (environment-agnostic)
 {
   "matter": "three-tier-app",
-  "account": "prod",
   "molecules": [
-    {
-      "name": "single-page-application",
-      "source": "molecules/single-page-application/v1",
-      "config": {
-        "environment": "prod",
-        "bucket_name": "my-app-assets-prod",
-        "s3_versioning_enabled": true,
-        "waf_name": "my-app-waf"
-      }
-    }
+    { "name": "single-page-application", "source": "molecules/single-page-application/v1" },
+    { "name": "db",                      "source": "molecules/db/v1" },
+    { "name": "lambda-svc",              "source": "molecules/lambda-svc/v1" }
   ]
 }
 ```
+
+```json
+// prod.json — account + per-molecule config for production
+{
+  "account": "prod",
+  "single-page-application": {
+    "environment": "prod",
+    "bucket_name": "my-app-assets-prod",
+    "s3_versioning_enabled": true
+  },
+  "db": {
+    "environment": "prod",
+    "instance_class": "db.t3.medium",
+    "multi_az": true
+  },
+  "lambda-svc": {
+    "environment": "prod",
+    "memory_mb": 512
+  }
+}
+```
+
+The `eif` renderer merges both files at render time and produces ready-to-apply HCL.
 
 ---
 
@@ -120,9 +139,10 @@ eif/
 │
 └── matter/                         # Deployable applications
     └── three-tier-app/
-        ├── dev.json                # environment composition (input)
-        ├── test.json
-        ├── prod.json
+        ├── composition.json        # molecule list + pinned versions (stable)
+        ├── dev.json                # account + per-molecule config for dev
+        ├── test.json               # account + per-molecule config for test
+        ├── prod.json               # account + per-molecule config for prod
         ├── main.tf.j2              # Jinja2 template
         └── .rendered/              # gitignored — render artifacts
             ├── dev/main.tf
@@ -137,15 +157,18 @@ eif/
 The `eif` CLI takes a matter directory and an environment name. It:
 
 1. Loads `accounts.json` from the repo root
-2. Loads `<env>.json` from the matter directory
-3. Resolves molecule source paths relative to the render output directory
-4. Merges account config into the template context
-5. Renders `main.tf.j2` → `.rendered/<env>/main.tf`
+2. Loads `composition.json` from the matter directory
+3. Loads `<env>.json` from the matter directory
+4. Attaches per-molecule config from the env file onto each molecule
+5. Resolves molecule source paths relative to the render output directory
+6. Merges account config into the template context
+7. Renders `main.tf.j2` → `.rendered/<env>/main.tf`
 
 ```
-accounts.json  ──┐
-<env>.json     ──┼──▶  eif  ──▶  .rendered/<env>/main.tf
-main.tf.j2     ──┘
+accounts.json      ──┐
+composition.json   ──┼──▶  eif  ──▶  .rendered/<env>/main.tf
+<env>.json         ──┤
+main.tf.j2         ──┘
 ```
 
 ---
@@ -206,13 +229,13 @@ atoms/storage/s3/
 
 The molecule that needs the new feature gets its own `v2/` referencing `atoms/storage/s3/v2`. All existing matter compositions continue to pin `molecules/single-page-application/v1` and are completely unaffected.
 
-Compositions pin to an explicit version:
+Molecule sources are pinned in `composition.json`:
 
 ```json
-{ "name": "single-page-application", "source": "molecules/single-page-application/v1", ... }
+{ "name": "single-page-application", "source": "molecules/single-page-application/v1" }
 ```
 
-To upgrade a composition to the latest available versions:
+To bump all pinned molecule versions in `composition.json` to the latest available:
 
 ```bash
 uv run eif upgrade matter/three-tier-app dev
