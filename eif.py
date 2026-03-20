@@ -105,7 +105,18 @@ def cmd_render(matter_dir: str, env: str) -> None:
         lstrip_blocks=True,
     )
     rendered = j2_env.get_template("main.tf.j2").render(**ctx)
-    output_file.write_text(rendered)
+
+    header = (
+        "# ============================================================================\n"
+        "# EIF — Elemental Infrastructure Framework\n"
+        f"# Matter      : {composition['matter']}\n"
+        f"# Environment : {env}\n"
+        f"# Account     : {composition['account']}\n"
+        "# DO NOT EDIT — rendered by eif. Edit the .j2 template and composition files.\n"
+        "# ============================================================================\n"
+        "\n"
+    )
+    output_file.write_text(header + rendered)
 
     print(f"[eif] rendered  → {output_file}")
     print(f"[eif] deploy    → terraform -chdir={output_dir} init")
