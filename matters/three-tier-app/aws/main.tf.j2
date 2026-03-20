@@ -40,11 +40,3 @@ module "lambda-svc" {
   vpc_id        = "{{ vpc_id }}"
   subnet_ids    = [{{ subnet_ids | map('tojson') | join(', ') }}]
 }
-
-# ── Outputs ───────────────────────────────────────────────────────────────────
-{% for mol in molecules %}
-output "{{ mol.name | replace('-', '_') }}_outputs" {
-  description = "Outputs from the {{ mol.name }} molecule."
-  value       = module.{{ mol.name }}
-}
-{% endfor %}

@@ -11,11 +11,3 @@ module "single-page-application" {
   armor_policy_name = "{{ armor_policy_name }}"
   blocked_ip_ranges = [{{ blocked_ip_ranges | map('tojson') | join(', ') }}]
 }
-
-# ── Outputs ───────────────────────────────────────────────────────────────────
-{% for mol in molecules %}
-output "{{ mol.name | replace('-', '_') }}_outputs" {
-  description = "Outputs from the {{ mol.name }} molecule."
-  value       = module.{{ mol.name }}
-}
-{% endfor %}

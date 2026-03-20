@@ -1,0 +1,6 @@
+{% for mol in molecules %}
+output "{{ mol.name | replace('-', '_') }}_outputs" {
+  description = "Outputs from the {{ mol.name }} molecule."
+  value       = module.{{ mol.name }}
+}
+{% endfor %}

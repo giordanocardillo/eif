@@ -14,11 +14,3 @@ module "single-page-application" {
   frontdoor_endpoint_name  = "{{ frontdoor_endpoint_name }}"
   frontdoor_sku_name       = "{{ frontdoor_sku_name }}"
 }
-
-# ── Outputs ───────────────────────────────────────────────────────────────────
-{% for mol in molecules %}
-output "{{ mol.name | replace('-', '_') }}_outputs" {
-  description = "Outputs from the {{ mol.name }} molecule."
-  value       = module.{{ mol.name }}
-}
-{% endfor %}
