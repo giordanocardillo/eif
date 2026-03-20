@@ -14,6 +14,7 @@ I N F R A S T R U C T U R E
 [![Provider Agnostic](https://img.shields.io/badge/Provider-Agnostic-4af0c4?style=flat-square)](https://www.terraform.io/docs/providers/)
 [![Python](https://img.shields.io/badge/Python-≥3.11-3a8fff?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![Status](https://img.shields.io/badge/Status-WIP-f0884a?style=flat-square)]()
+[![Library](https://img.shields.io/badge/Component_Library-eif--library-4af0c4?style=flat-square)](https://github.com/giordanocardillo/eif-library)
 
 **Build infrastructure the way nature builds matter — atom by atom.**
 
