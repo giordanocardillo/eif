@@ -5,6 +5,7 @@ description = "Elemental Infrastructure Framework — Jinja2 to HCL renderer"
 requires-python = ">=3.11"
 dependencies = [
     "jinja2>=3.1",
+    "questionary>=2.0",
 ]
 
 [project.scripts]
