@@ -4,7 +4,7 @@
   "molecules": [
     {
       "name": "swa",
-      "source": "molecules/swa",
+      "source": "molecules/swa/v1",
       "config": {
         "environment": "dev",
         "bucket_name": "three-tier-app-assets-dev",
@@ -16,7 +16,7 @@
     },
     {
       "name": "db",
-      "source": "molecules/db",
+      "source": "molecules/db/v1",
       "config": {
         "environment": "dev",
         "identifier": "three-tier-app-db-dev",
@@ -33,7 +33,7 @@
     },
     {
       "name": "lambda_svc",
-      "source": "molecules/lambda-svc",
+      "source": "molecules/lambda-svc/v1",
       "config": {
         "environment": "dev",
         "function_name": "three-tier-app-api-dev",
