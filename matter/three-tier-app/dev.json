@@ -4,7 +4,7 @@
   "molecules": [
     {
       "name": "swa",
-      "source": "molecules/swa/v1",
+      "source": "molecules/single-page-application/v1",
       "config": {
         "environment": "dev",
         "bucket_name": "three-tier-app-assets-dev",

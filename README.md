@@ -51,7 +51,7 @@ A combination of atoms forming a coherent architectural pattern. Intra-molecule 
 
 | Molecule | Atoms | Dependency chain |
 |---|---|---|
-| `swa` | `s3` + `cloudfront` + `waf` | `cloudfront` ← `s3.domain`, `waf.arn` |
+| `single-page-application` | `s3` + `cloudfront` + `waf` | `cloudfront` ← `s3.domain`, `waf.arn` |
 | `db` | `rds` + `sg` | `sg` port derived from engine → `rds` ← `sg.id` |
 | `lambda-svc` | `lambda` + `sg` | `lambda` ← `sg.id` |
 
@@ -68,8 +68,8 @@ A combination of atoms forming a coherent architectural pattern. Intra-molecule 
   "account": "prod",
   "molecules": [
     {
-      "name": "swa",
-      "source": "molecules/swa/v1",
+      "name": "single-page-application",
+      "source": "molecules/single-page-application/v1",
       "config": {
         "environment": "prod",
         "bucket_name": "my-app-assets-prod",
@@ -111,7 +111,7 @@ eif/
 │           └── v1/
 │
 ├── molecules/                      # Architectural blueprints
-│   ├── swa/
+│   ├── single-page-application/
 │   │   └── v1/                     # s3/v1 + cloudfront/v1 + waf/v1
 │   ├── db/
 │   │   └── v1/                     # rds/v1 + sg/v1
@@ -204,12 +204,12 @@ atoms/storage/s3/
   v2/   ← new interface; new molecules reference this
 ```
 
-The molecule that needs the new feature gets its own `v2/` referencing `atoms/storage/s3/v2`. All existing matter compositions continue to pin `molecules/swa/v1` and are completely unaffected.
+The molecule that needs the new feature gets its own `v2/` referencing `atoms/storage/s3/v2`. All existing matter compositions continue to pin `molecules/single-page-application/v1` and are completely unaffected.
 
 Compositions pin to an explicit version:
 
 ```json
-{ "name": "swa", "source": "molecules/swa/v1", ... }
+{ "name": "single-page-application", "source": "molecules/single-page-application/v1", ... }
 ```
 
 To upgrade a composition to the latest available versions:
@@ -260,8 +260,8 @@ Matter is the only deployment entry point. Atoms and molecules are internal — 
 ## ◌ Roadmap
 
 - [x] Atom library: `s3`, `cloudfront`, `waf`, `lambda`, `rds`, `sg`
-- [x] Molecule library: `swa`, `db`, `lambda-svc`
-- [x] Matter template: `three-tier-app` (`swa` + `db` + `lambda-svc`)
+- [x] Molecule library: `single-page-application`, `db`, `lambda-svc`
+- [x] Matter template: `three-tier-app` (`single-page-application` + `db` + `lambda-svc`)
 - [x] Jinja2 → HCL renderer (`eif`)
 - [x] Multi-environment support (`dev`, `test`, `prod`)
 - [x] Multi-account support (profile + assume_role)
