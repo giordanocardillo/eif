@@ -42,6 +42,7 @@ import re
 import shutil
 import subprocess
 import sys
+from importlib.metadata import version as _pkg_version
 from pathlib import Path
 
 import questionary
@@ -1109,8 +1110,13 @@ def cmd_new(args: list[str]) -> None:
 
 # ── Entry point ───────────────────────────────────────────────────────────────
 
+def cmd_version(_args: list[str]) -> None:
+    print(f"eif {_pkg_version('eif')}")
+
+
 USAGE = (
     "Usage:\n"
+    "  eif version\n"
     "  eif render   [<provider> <matter> <env>]\n"
     "  eif upgrade  [<provider> <matter> <env>]\n"
     "  eif plan     [<provider> <matter> <env>]\n"
@@ -1132,6 +1138,7 @@ def main() -> None:
 
     cmd = args[0]
     CMDS = {
+        "version":  cmd_version,
         "render":   cmd_render,
         "upgrade":  cmd_upgrade,
         "plan":     cmd_plan,
