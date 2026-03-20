@@ -589,7 +589,7 @@
       <p class="h-card-num">LEVEL 03 — MATTER</p>
       <h3 class="h-card-title">Matter</h3>
       <p class="h-card-desc">
-        A complete application composed of molecules. Structure is declared once in <code>composition.json</code>; environment-specific sizing lives in <code>&lt;env&gt;.json</code>. The <strong style="color:var(--matter)">eif</strong> CLI merges both and renders Jinja2 → HCL, isolated per environment.
+        A complete application composed of molecules. Structure is declared once in <code>composition.json</code>; each <code>&lt;env&gt;.json</code> is a flat pool of variables — no per-molecule grouping, no repeated <code>environment</code> key (injected automatically). The template is the wiring layer.
       </p>
       <div class="h-card-example">
         <span class="hi">matter/three-tier-app/</span>
@@ -676,9 +676,9 @@
 <span class="ft-matter">└── matter/</span>                     <span class="ft-comment"># Deployable applications</span>
 <span class="ft-file">    └── three-tier-app/</span>
 <span class="ft-file">        ├── composition.json</span>   <span class="ft-comment"># molecule list + pinned versions (stable)</span>
-<span class="ft-file">        ├── dev.json</span>           <span class="ft-comment"># account + per-molecule config for dev</span>
-<span class="ft-file">        ├── test.json</span>          <span class="ft-comment"># account + per-molecule config for test</span>
-<span class="ft-file">        ├── prod.json</span>          <span class="ft-comment"># account + per-molecule config for prod</span>
+<span class="ft-file">        ├── dev.json</span>           <span class="ft-comment"># flat variable pool for dev</span>
+<span class="ft-file">        ├── test.json</span>          <span class="ft-comment"># flat variable pool for test</span>
+<span class="ft-file">        ├── prod.json</span>          <span class="ft-comment"># flat variable pool for prod</span>
 <span class="ft-file">        └── main.tf.j2</span>         <span class="ft-comment"># Jinja2 template → .rendered/&lt;env&gt;/main.tf</span>
 </pre>
   </div>
