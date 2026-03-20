@@ -1,7 +1,9 @@
 # ============================================================================
 # EIF — Elemental Infrastructure Framework
-# Matter  : {{ matter }}
-# Rendered: by eif.py — DO NOT EDIT BY HAND
+# Matter      : {{ matter }}
+# Environment : {{ environment }}
+# Account     : {{ account }}
+# Rendered    : by eif — DO NOT EDIT BY HAND
 # ============================================================================
 
 terraform {
@@ -16,6 +18,13 @@ terraform {
 
 provider "aws" {
   region = "{{ aws_region }}"
+{% if assume_role_arn is defined %}
+  assume_role {
+    role_arn = "{{ assume_role_arn }}"
+  }
+{% elif profile is defined %}
+  profile = "{{ profile }}"
+{% endif %}
 }
 
 # ── Molecules ─────────────────────────────────────────────────────────────────
@@ -30,6 +39,8 @@ module "{{ mol.name }}" {
   {{ key }} = false
 {% elif value is string %}
   {{ key }} = "{{ value }}"
+{% elif value is sequence %}
+  {{ key }} = [{{ value | map('tojson') | join(', ') }}]
 {% else %}
   {{ key }} = {{ value }}
 {% endif %}
