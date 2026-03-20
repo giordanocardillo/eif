@@ -109,13 +109,13 @@
     overflow: hidden;
   }
 
-  /* Glow orbs */
+  /* Glow orb */
   .hero::after {
     content: '';
     position: absolute;
     top: 20%; left: 50%;
     transform: translateX(-50%);
-    width: 600px; height: 600px;
+    width: min(600px, 140vw); height: min(600px, 140vw);
     background: radial-gradient(ellipse, rgba(74,240,196,0.06) 0%, transparent 70%);
     pointer-events: none;
   }
@@ -443,13 +443,51 @@
     transform: translateY(0);
   }
 
+  /* ── TABLET / LARGE PHONE ── */
   @media (max-width: 768px) {
-    nav { padding: 16px 24px; }
+    nav { padding: 14px 20px; }
     .nav-links { display: none; }
-    .hero { padding: 100px 24px 60px; }
-    section { padding: 60px 24px; }
-    .hierarchy { grid-template-columns: 1fr; }
-    footer { flex-direction: column; gap: 12px; text-align: center; }
+
+    .hero {
+      min-height: auto;
+      padding: 88px 24px 52px;
+    }
+    .logo-svg { width: 100px; height: 100px; }
+    .logo-wrap { margin-bottom: 28px; }
+    h1 { font-size: 2.4rem; letter-spacing: -0.01em; }
+    .hero-subtitle { font-size: 0.82rem; letter-spacing: 0.1em; margin-bottom: 20px; }
+    .hero-desc { font-size: 0.95rem; margin-bottom: 36px; }
+    .code-pill { font-size: 0.7rem; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    section { padding: 56px 20px; }
+
+    .hierarchy { grid-template-columns: 1fr; margin-top: 40px; }
+    .h-card { padding: 28px 20px; }
+
+    .philosophy { padding: 24px 20px; margin-top: 40px; }
+    .philosophy-quote { font-size: clamp(1rem, 4vw, 1.3rem); }
+
+    .file-tree { font-size: 0.68rem; padding: 18px 16px; line-height: 1.75; margin-top: 32px; }
+
+    footer { flex-direction: column; gap: 10px; text-align: center; padding: 28px 20px; }
+  }
+
+  /* ── SMALL PHONE ── */
+  @media (max-width: 480px) {
+    .hero { padding: 80px 16px 44px; }
+    .logo-svg { width: 80px; height: 80px; }
+    .logo-wrap { margin-bottom: 20px; }
+    .badge { font-size: 0.62rem; padding: 5px 12px; margin-bottom: 20px; }
+    h1 { font-size: 1.9rem; }
+    .hero-subtitle { font-size: 0.75rem; }
+    .hero-desc { font-size: 0.9rem; }
+    .btn { font-size: 0.72rem; padding: 12px 20px; }
+
+    section { padding: 44px 16px; }
+    .h-card { padding: 24px 16px; }
+    .h-card-title { font-size: 1.3rem; }
+    .philosophy { padding: 20px 16px; }
+    .file-tree { font-size: 0.62rem; padding: 14px 12px; }
   }
 </style>
 </head>
