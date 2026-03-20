@@ -12,7 +12,12 @@
   "prod": {
     "provider": "aws",
     "aws_region": "us-east-1",
-    "assume_role_arn": "arn:aws:iam::YOUR_ACCOUNT_ID:role/YOUR_ROLE_NAME"
+    "assume_role_arn": "arn:aws:iam::YOUR_ACCOUNT_ID:role/YOUR_ROLE_NAME",
+    "backend": {
+      "bucket":         "YOUR_TFSTATE_BUCKET",
+      "region":         "us-east-1",
+      "dynamodb_table": "YOUR_TFSTATE_LOCK_TABLE"
+    }
   },
 
   "azure-dev": {
@@ -27,7 +32,13 @@
     "subscription_id": "YOUR_SUBSCRIPTION_ID",
     "tenant_id": "YOUR_TENANT_ID",
     "client_id": "YOUR_CLIENT_ID",
-    "client_secret": "YOUR_CLIENT_SECRET"
+    "client_secret": "YOUR_CLIENT_SECRET",
+    "backend": {
+      "resource_group_name":  "YOUR_RESOURCE_GROUP",
+      "storage_account_name": "YOUR_STORAGE_ACCOUNT",
+      "container_name":       "tfstate",
+      "location":             "eastus"
+    }
   },
 
   "gcp-dev": {
@@ -40,6 +51,9 @@
     "provider": "gcp",
     "project": "YOUR_PROJECT_ID",
     "region": "us-central1",
-    "credentials_file": "/path/to/your/service-account.json"
+    "credentials_file": "/path/to/your/service-account.json",
+    "backend": {
+      "bucket": "YOUR_TFSTATE_BUCKET"
+    }
   }
 }

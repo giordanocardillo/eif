@@ -17,7 +17,7 @@ I N F R A S T R U C T U R E
 
 **Build infrastructure the way nature builds matter — atom by atom.**
 
-[Philosophy](#-philosophy) · [Model](#-the-model) · [Providers](#-providers) · [Structure](#-structure) · [Renderer](#-renderer) · [Environments](#-environments) · [Versioning](#-versioning) · [Usage](#-usage) · [Roadmap](#-roadmap)
+[Philosophy](#-philosophy) · [Model](#-the-model) · [Providers](#-providers) · [Structure](#-structure) · [Renderer](#-renderer) · [Environments](#-environments) · [Versioning](#-versioning) · [State](#-state) · [Usage](#-usage) · [Roadmap](#-roadmap)
 
 </div>
 
@@ -279,7 +279,7 @@ uv run eif upgrade matters/three-tier-app/aws dev
 uv sync
 ```
 
-### Render and deploy
+### Render only
 
 ```bash
 # interactive — select provider, matter, and environment from menus
@@ -287,10 +287,34 @@ uv run eif render
 
 # non-interactive — pass provider, matter, environment directly
 uv run eif render aws three-tier-app dev
+```
 
-# deploy
-terraform -chdir=matters/three-tier-app/aws/.rendered/dev init
-terraform -chdir=matters/three-tier-app/aws/.rendered/dev apply
+### Full deployment lifecycle
+
+```bash
+# plan — render + terraform plan (no changes applied)
+uv run eif plan aws three-tier-app dev
+
+# apply — render + terraform init + apply + snapshot on success
+uv run eif apply aws three-tier-app dev
+
+# destroy — terraform destroy against the last rendered output
+uv run eif destroy aws three-tier-app dev
+
+# rollback — pick a previous snapshot and re-apply
+uv run eif rollback aws three-tier-app dev
+```
+
+All commands support interactive mode (no args) and non-interactive mode (`<provider> <matter> <env>`).
+
+### Bootstrap remote state
+
+```bash
+# set up state bucket / container / DynamoDB table via cloud CLI
+uv run eif init backend aws three-tier-app dev
+
+# add a new account entry to accounts.json interactively
+uv run eif init account
 ```
 
 ### Upgrade molecule versions
@@ -327,6 +351,49 @@ Matter is the only deployment entry point. Atoms and molecules are internal — 
 
 ---
 
+## ⊙ State
+
+EIF wraps the full Terraform deployment lifecycle. Every successful `apply` saves a **snapshot** of the rendered `main.tf`, enabling rollback to any previous configuration without touching the Terraform state file.
+
+### Remote backends
+
+Add a `backend` key to any account in `accounts.json` to enable remote state. EIF will inject the correct `backend {}` block into the rendered output automatically.
+
+| Provider | Backend type | Required fields |
+|---|---|---|
+| AWS | `s3` | `bucket`, `region`, `dynamodb_table` (locking) |
+| Azure | `azurerm` | `resource_group_name`, `storage_account_name`, `container_name` |
+| GCP | `gcs` | `bucket` |
+
+```json
+// accounts.json — prod entry with S3 backend
+{
+  "prod": {
+    "provider": "aws",
+    "aws_region": "us-east-1",
+    "assume_role_arn": "arn:aws:iam::...:role/EIFDeployRole",
+    "backend": {
+      "bucket":         "my-tfstate-bucket",
+      "region":         "us-east-1",
+      "dynamodb_table": "my-tfstate-locks"
+    }
+  }
+}
+```
+
+If no `backend` is configured, Terraform uses local state and EIF stores snapshots in `.history/` (gitignored). This is suitable for solo developers; teams should configure a remote backend.
+
+### Snapshot storage
+
+- **Local** (always): `.history/<env>/<timestamp>/main.tf` — gitignored
+- **Remote** (if backend configured): uploaded alongside state in the same bucket/container
+
+### Rollback
+
+Rollback restores a previous rendered `main.tf` and re-applies it. Terraform computes the diff against the current live state and converges the infrastructure accordingly.
+
+---
+
 ## ◌ Roadmap
 
 - [x] Atom library (AWS): `s3`, `cloudfront`, `waf`, `lambda`, `rds`, `sg`
@@ -341,9 +408,12 @@ Matter is the only deployment entry point. Atoms and molecules are internal — 
 - [x] Atom + molecule library: GCP (`gcs`, `cdn`, `armor` → `single-page-application`)
 - [x] Matter template: `single-page-application` (AWS, Azure, GCP)
 - [x] Scaffolding CLI: `eif new atom`, `eif new molecule`, `eif new matter`
+- [x] Deployment lifecycle: `eif plan`, `eif apply`, `eif destroy`, `eif rollback`
+- [x] Remote state management: S3 / Azure Blob / GCS backends with versioning
+- [x] Snapshot history: per-apply render snapshots, rollback to any previous config
+- [x] Backend bootstrap: `eif init backend` (creates bucket + DynamoDB lock table)
 - [ ] Atom library (AWS): compute (`ecs`), networking (`api-gateway`)
 - [ ] Matter template: `serverless-api`
-- [ ] Remote state management per matter/environment
 - [ ] CI/CD pipeline examples (GitHub Actions / Azure DevOps)
 - [ ] Tagging strategy module
 - [ ] Cost estimation per matter

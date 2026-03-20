@@ -6,6 +6,9 @@ terraform {
     }
   }
   required_version = ">= 1.5"
+{% if backend_block %}
+{{ backend_block }}
+{% endif %}
 }
 
 provider "google" {
