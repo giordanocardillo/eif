@@ -539,10 +539,9 @@
   <h1><span class="accent-e">E</span>lemental <span class="accent-i">I</span>nfrastructure <span class="accent-f">F</span>ramework</h1>
   <p class="hero-subtitle">Build infrastructure the way nature builds matter</p>
   <p class="hero-desc">
-    EIF is a cloud-agnostic Terraform library that models infrastructure with the elegance of chemistry.
+    EIF is a provider-agnostic Terraform library that models infrastructure with the elegance of chemistry.
     Compose <strong style="color:var(--atom)">atoms</strong> into <strong style="color:var(--molecule)">molecules</strong>,
-    molecules into <strong style="color:var(--matter)">matter</strong> — across <strong style="color:var(--accent)">AWS</strong>,
-    <strong style="color:var(--accent2)">Azure</strong>, and <strong style="color:var(--accent3)">GCP</strong>.
+    molecules into <strong style="color:var(--matter)">matter</strong> — on any cloud provider.
   </p>
   <div class="hero-cta">
     <a href="#hierarchy" class="btn btn-primary">Explore the Model</a>
@@ -599,7 +598,7 @@
         <span class="hi">atoms/aws/networking/cloudfront/v1/</span>
         <span class="hi">atoms/aws/storage/s3/v1/</span>
         <span class="hi">atoms/aws/security/waf/v1/</span>
-        <span style="color:#3a4a6a">atoms/azure/ · atoms/gcp/</span>
+        <span style="color:#3a4a6a">atoms/&lt;cloud&gt;/  ← any provider</span>
       </div>
     </div>
 
@@ -618,7 +617,7 @@
         <span>  ├── rds/v1 + sg/v1</span>
         <span class="hi">molecules/aws/lambda-svc/v1/</span>
         <span>  ├── lambda/v1 + sg/v1</span>
-        <span style="color:#3a4a6a">molecules/azure/ · molecules/gcp/</span>
+        <span style="color:#3a4a6a">molecules/&lt;cloud&gt;/  ← any provider</span>
       </div>
     </div>
 
@@ -766,7 +765,7 @@
 <footer>
   <span>© 2025 Elemental Infrastructure Framework</span>
   <span style="color:var(--accent)">EIF — v1.0.0</span>
-  <span>Built on Terraform · AWS · Azure · GCP · Open Source</span>
+  <span>Built on Terraform · Provider Agnostic · Open Source</span>
 </footer>
 
 <script>
