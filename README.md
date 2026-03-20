@@ -313,8 +313,8 @@ All commands support interactive mode (no args) and non-interactive mode (`<prov
 # set up state bucket / container / DynamoDB table via cloud CLI
 uv run eif init backend aws three-tier-app dev
 
-# add a new account entry to accounts.json interactively
-uv run eif init account
+# add a new account entry to accounts.json (one-time, per account)
+uv run eif add account
 ```
 
 ### Upgrade molecule versions
