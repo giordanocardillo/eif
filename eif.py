@@ -4,7 +4,7 @@ EIF — Elemental Infrastructure Framework
 CLI renderer and upgrade tool.
 
 Commands:
-    eif render  <matter-dir> <env>    Render env composition → .rendered/<env>/main.tf
+    eif render  <matter-dir> <env>    Render composition + env → .rendered/<env>/main.tf
     eif upgrade <matter-dir> <env>    Bump all molecule sources to their latest version
 
 Examples:
@@ -54,16 +54,18 @@ def resolve_sources(molecules: list, repo_root: Path, output_dir: Path) -> None:
         mol["source"] = os.path.relpath(mol_abs, output_dir)
 
 
-def load_inputs(matter_path: Path, env: str) -> tuple[dict, dict]:
+def load_inputs(matter_path: Path, env: str) -> tuple:
     repo_root = find_repo_root(matter_path)
 
     accounts_file    = repo_root / "accounts.json"
-    composition_file = matter_path / f"{env}.json"
+    composition_file = matter_path / "composition.json"
+    env_file         = matter_path / f"{env}.json"
     template_file    = matter_path / "main.tf.j2"
 
     for path, label in [
         (accounts_file,    "accounts.json"),
-        (composition_file, f"{env}.json"),
+        (composition_file, "composition.json"),
+        (env_file,         f"{env}.json"),
         (template_file,    "main.tf.j2"),
     ]:
         if not path.exists():
@@ -73,22 +75,28 @@ def load_inputs(matter_path: Path, env: str) -> tuple[dict, dict]:
         accounts = json.load(fh)
     with composition_file.open() as fh:
         composition = json.load(fh)
+    with env_file.open() as fh:
+        env_config = json.load(fh)
 
-    account_key = composition.get("account")
+    account_key = env_config.get("account")
     if account_key not in accounts:
         sys.exit(
             f"[eif] ERROR: account '{account_key}' not defined in accounts.json. "
             f"Available: {list(accounts.keys())}"
         )
 
-    return accounts[account_key], composition, repo_root, composition_file
+    # Attach per-molecule config from the env file
+    for mol in composition["molecules"]:
+        mol["config"] = env_config.get(mol["name"], {})
+
+    return accounts[account_key], composition, env_config, repo_root, composition_file
 
 
 # ── Commands ──────────────────────────────────────────────────────────────────
 
 def cmd_render(matter_dir: str, env: str) -> None:
     matter_path = Path(matter_dir).resolve()
-    account_config, composition, repo_root, _ = load_inputs(matter_path, env)
+    account_config, composition, env_config, repo_root, _ = load_inputs(matter_path, env)
 
     output_dir  = matter_path / ".rendered" / env
     output_file = output_dir / "main.tf"
@@ -96,7 +104,7 @@ def cmd_render(matter_dir: str, env: str) -> None:
 
     resolve_sources(composition["molecules"], repo_root, output_dir)
 
-    ctx = {**account_config, **composition, "environment": env}
+    ctx = {**account_config, **composition, "environment": env, "account": env_config["account"]}
 
     j2_env = Environment(
         loader=FileSystemLoader(str(matter_path)),
@@ -111,7 +119,7 @@ def cmd_render(matter_dir: str, env: str) -> None:
         "# EIF — Elemental Infrastructure Framework\n"
         f"# Matter      : {composition['matter']}\n"
         f"# Environment : {env}\n"
-        f"# Account     : {composition['account']}\n"
+        f"# Account     : {env_config['account']}\n"
         "# DO NOT EDIT — rendered by eif. Edit the .j2 template and composition files.\n"
         "# ============================================================================\n"
         "\n"
@@ -125,12 +133,12 @@ def cmd_render(matter_dir: str, env: str) -> None:
 
 def cmd_upgrade(matter_dir: str, env: str) -> None:
     matter_path = Path(matter_dir).resolve()
-    _, composition, repo_root, composition_file = load_inputs(matter_path, env)
+    _, composition, _, repo_root, composition_file = load_inputs(matter_path, env)
 
     upgraded = []
     for mol in composition["molecules"]:
-        source = mol["source"]                       # e.g. "molecules/swa/v1"
-        parts  = source.rsplit("/", 1)               # ["molecules/swa", "v1"]
+        source = mol["source"]
+        parts  = source.rsplit("/", 1)
 
         if len(parts) != 2 or not re.fullmatch(r"v\d+", parts[1]):
             print(f"[eif] skip      {source!r} — no version suffix")
@@ -151,8 +159,13 @@ def cmd_upgrade(matter_dir: str, env: str) -> None:
             upgraded.append((source, mol["source"]))
             print(f"[eif] upgraded  {source!r} → {mol['source']!r}")
 
+    # Write back only the composition file (env files are unaffected by upgrades)
     if upgraded:
-        composition_file.write_text(json.dumps(composition, indent=2) + "\n")
+        # Strip config before writing back (config is not stored in composition.json)
+        clean = {**composition, "molecules": [
+            {"name": m["name"], "source": m["source"]} for m in composition["molecules"]
+        ]}
+        composition_file.write_text(json.dumps(clean, indent=2) + "\n")
         print(f"[eif] wrote     → {composition_file}")
     else:
         print("[eif] nothing to upgrade")
