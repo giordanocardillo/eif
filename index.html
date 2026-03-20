@@ -470,6 +470,7 @@
     <li><a href="#hierarchy">Hierarchy</a></li>
     <li><a href="#versioning">Versioning</a></li>
     <li><a href="#structure">Structure</a></li>
+
     <li><a href="https://github.com/giordanocardillo/eif" target="_blank" style="color:var(--accent)">GitHub ↗</a></li>
   </ul>
 </nav>
@@ -602,6 +603,40 @@
 
 <div class="divider"></div>
 
+<!-- VERSIONING -->
+<section id="versioning">
+  <p class="section-label reveal">Stability guarantee</p>
+  <h2 class="section-title reveal">Versioning</h2>
+  <p class="section-body reveal">
+    Atoms and molecules evolve without breaking existing deployments.
+    Every breaking change creates a new version directory alongside the old one —
+    matter in production stays pinned forever.
+  </p>
+
+  <div class="philosophy reveal" style="margin-top:48px;">
+    <p class="philosophy-quote" style="font-size:1rem;font-weight:400;line-height:1.9;color:var(--text-muted);">
+      <strong style="color:var(--text)">Bug fix or new optional variable</strong> → edit in place within the existing version.<br>
+      <strong style="color:var(--text)">Breaking change</strong> → create a new version directory alongside the old one.<br><br>
+      <span style="font-family:'Space Mono',monospace;font-size:0.8rem;color:var(--atom)">atoms/storage/s3/v1/</span><span style="font-family:'Space Mono',monospace;font-size:0.8rem;color:var(--text-muted)"> ← prod matter stays pinned here</span><br>
+      <span style="font-family:'Space Mono',monospace;font-size:0.8rem;color:var(--atom)">atoms/storage/s3/v2/</span><span style="font-family:'Space Mono',monospace;font-size:0.8rem;color:var(--text-muted)"> ← new feature, new interface</span>
+    </p>
+    <span class="philosophy-attr">Compositions pin to an explicit version — upgrade is always a deliberate choice.</span>
+  </div>
+
+  <div class="file-tree reveal" style="margin-top:32px;">
+<pre>
+<span class="ft-comment"># upgrade a matter composition to latest molecule versions</span>
+<span style="color:var(--accent)">uv run eif upgrade</span> matter/three-tier-app dev
+
+<span class="ft-comment"># [eif] upgraded  "molecules/swa/v1" → "molecules/swa/v2"</span>
+<span class="ft-comment"># [eif] up-to-date "molecules/db/v1"</span>
+<span class="ft-comment"># [eif] wrote     → matter/three-tier-app/dev.json</span>
+</pre>
+  </div>
+</section>
+
+<div class="divider"></div>
+
 <!-- STRUCTURE -->
 <section id="structure">
   <p class="section-label reveal">Repository layout</p>
@@ -642,40 +677,6 @@
 <span class="ft-file">        ├── test.json</span>
 <span class="ft-file">        ├── prod.json</span>
 <span class="ft-file">        └── main.tf.j2</span>         <span class="ft-comment"># Jinja2 template → .rendered/&lt;env&gt;/main.tf</span>
-</pre>
-  </div>
-</section>
-
-<div class="divider"></div>
-
-<!-- VERSIONING -->
-<section id="versioning">
-  <p class="section-label reveal">Stability guarantee</p>
-  <h2 class="section-title reveal">Versioning</h2>
-  <p class="section-body reveal">
-    Atoms and molecules evolve without breaking existing deployments.
-    Every breaking change creates a new version directory alongside the old one —
-    matter in production stays pinned forever.
-  </p>
-
-  <div class="philosophy reveal" style="margin-top:48px;">
-    <p class="philosophy-quote" style="font-size:1rem;font-weight:400;line-height:1.9;color:var(--text-muted);">
-      <strong style="color:var(--text)">Bug fix or new optional variable</strong> → edit in place within the existing version.<br>
-      <strong style="color:var(--text)">Breaking change</strong> → create a new version directory alongside the old one.<br><br>
-      <span style="font-family:'Space Mono',monospace;font-size:0.8rem;color:var(--atom)">atoms/storage/s3/v1/</span><span style="font-family:'Space Mono',monospace;font-size:0.8rem;color:var(--text-muted)"> ← prod matter stays pinned here</span><br>
-      <span style="font-family:'Space Mono',monospace;font-size:0.8rem;color:var(--atom)">atoms/storage/s3/v2/</span><span style="font-family:'Space Mono',monospace;font-size:0.8rem;color:var(--text-muted)"> ← new feature, new interface</span>
-    </p>
-    <span class="philosophy-attr">Compositions pin to an explicit version — upgrade is always a deliberate choice.</span>
-  </div>
-
-  <div class="file-tree reveal" style="margin-top:32px;">
-<pre>
-<span class="ft-comment"># upgrade a matter composition to latest molecule versions</span>
-<span style="color:var(--accent)">uv run eif upgrade</span> matter/three-tier-app dev
-
-<span class="ft-comment"># [eif] upgraded  "molecules/swa/v1" → "molecules/swa/v2"</span>
-<span class="ft-comment"># [eif] up-to-date "molecules/db/v1"</span>
-<span class="ft-comment"># [eif] wrote     → matter/three-tier-app/dev.json</span>
 </pre>
   </div>
 </section>
