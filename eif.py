@@ -4,16 +4,16 @@ EIF — Elemental Infrastructure Framework
 CLI renderer, upgrade tool, and scaffolding.
 
 Commands:
-    eif render      <matter-dir> <env>   Render composition + env → .rendered/<env>/main.tf
-    eif upgrade     <matter-dir> <env>   Bump all molecule sources to their latest version
-    eif new atom    [name]               Scaffold a new atom (interactive)
-    eif new molecule [name]              Scaffold a new molecule (interactive)
-    eif new matter  [name]               Scaffold a new matter (interactive)
+    eif render  [<provider> <matter> <env>]   Render composition + env → .rendered/<env>/main.tf
+    eif upgrade [<provider> <matter> <env>]   Bump all molecule sources to their latest version
+    eif new atom     [name]                   Scaffold a new atom (interactive)
+    eif new molecule [name]                   Scaffold a new molecule (interactive)
+    eif new matter   [name]                   Scaffold a new matter (interactive)
 
 Examples:
-    uv run eif render      matters/three-tier-app/aws dev
-    uv run eif render      matters/three-tier-app/aws prod
-    uv run eif upgrade     matters/three-tier-app/aws dev
+    uv run eif render                          # interactive: select provider → matter → env
+    uv run eif render  aws three-tier-app dev
+    uv run eif upgrade aws three-tier-app dev
     uv run eif new atom
     uv run eif new molecule my-service
     uv run eif new matter   my-app
@@ -228,6 +228,54 @@ def _multiselect(label: str, items: list[dict]) -> list[dict]:
         print("[eif] select at least one item")
 
 
+def _list_matters(provider: str, repo_root: Path) -> list[str]:
+    matters_dir = repo_root / "matters"
+    if not matters_dir.is_dir():
+        return []
+    return sorted(
+        d.name for d in matters_dir.iterdir()
+        if d.is_dir() and (d / provider).is_dir()
+    )
+
+
+def _list_envs(matter_path: Path) -> list[str]:
+    return sorted(
+        f.stem for f in matter_path.glob("*.json")
+        if not f.name.endswith(".example.json") and f.name != "composition.json"
+    )
+
+
+def _resolve_matter_and_env(args: list[str]) -> tuple[Path, str]:
+    """Return (matter_path, env) from [provider, matter, env] args or interactive prompts."""
+    repo_root = find_repo_root(Path.cwd())
+
+    if len(args) == 3:
+        provider, matter_name, env = args
+        return repo_root / "matters" / matter_name / provider, env
+
+    if len(args) != 0:
+        sys.exit(USAGE)
+
+    # Interactive
+    providers = _detect_providers(repo_root)
+    if not providers:
+        sys.exit("[eif] ERROR: no providers found in providers/")
+    provider = _choose("provider", providers)
+
+    matters = _list_matters(provider, repo_root)
+    if not matters:
+        sys.exit(f"[eif] ERROR: no matters found for provider '{provider}'")
+    matter_name = _choose("matter", matters)
+
+    matter_path = repo_root / "matters" / matter_name / provider
+    envs = _list_envs(matter_path)
+    if not envs:
+        sys.exit(f"[eif] ERROR: no environment files found in {matter_path.relative_to(repo_root)}")
+    env = _choose("environment", envs)
+
+    return matter_path, env
+
+
 def _provider_tf_block(provider: str) -> str:
     if provider in _PROVIDER_TF:
         return _PROVIDER_TF[provider]
@@ -265,8 +313,8 @@ def render_provider_block(account_config: dict, repo_root: Path) -> str:
     return j2_env.get_template("provider.tf.j2").render(**account_config)
 
 
-def cmd_render(matter_dir: str, env: str) -> None:
-    matter_path = Path(matter_dir).resolve()
+def cmd_render(args: list[str]) -> None:
+    matter_path, env = _resolve_matter_and_env(args)
     account_config, composition, env_config, repo_root, _ = load_inputs(matter_path, env)
 
     output_dir  = matter_path / ".rendered" / env
@@ -313,8 +361,8 @@ def cmd_render(matter_dir: str, env: str) -> None:
     print(f"[eif]             terraform -chdir={output_dir} apply")
 
 
-def cmd_upgrade(matter_dir: str, env: str) -> None:
-    matter_path = Path(matter_dir).resolve()
+def cmd_upgrade(args: list[str]) -> None:
+    matter_path, env = _resolve_matter_and_env(args)
     _, composition, _, repo_root, composition_file = load_inputs(matter_path, env)
 
     upgraded = []
@@ -612,11 +660,11 @@ def cmd_new(args: list[str]) -> None:
 
 USAGE = (
     "Usage:\n"
-    "  eif render      <matter-dir> <env>\n"
-    "  eif upgrade     <matter-dir> <env>\n"
-    "  eif new atom    [name]\n"
+    "  eif render  [<provider> <matter> <env>]   (interactive if omitted)\n"
+    "  eif upgrade [<provider> <matter> <env>]   (interactive if omitted)\n"
+    "  eif new atom     [name]\n"
     "  eif new molecule [name]\n"
-    "  eif new matter  [name]"
+    "  eif new matter   [name]"
 )
 
 def main() -> None:
@@ -628,10 +676,8 @@ def main() -> None:
 
     if cmd == "new":
         cmd_new(args[1:])
-    elif cmd == "render" and len(args) == 3:
-        cmd_render(args[1], args[2])
-    elif cmd == "upgrade" and len(args) == 3:
-        cmd_upgrade(args[1], args[2])
+    elif cmd in ("render", "upgrade"):
+        {"render": cmd_render, "upgrade": cmd_upgrade}[cmd](args[1:])
     else:
         sys.exit(USAGE)
 

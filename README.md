@@ -282,9 +282,11 @@ uv sync
 ### Render and deploy
 
 ```bash
-# render for a specific environment
-uv run eif render matters/three-tier-app/aws dev
-uv run eif render matters/three-tier-app/aws prod
+# interactive — select provider, matter, and environment from menus
+uv run eif render
+
+# non-interactive — pass provider, matter, environment directly
+uv run eif render aws three-tier-app dev
 
 # deploy
 terraform -chdir=matters/three-tier-app/aws/.rendered/dev init
@@ -294,8 +296,11 @@ terraform -chdir=matters/three-tier-app/aws/.rendered/dev apply
 ### Upgrade molecule versions
 
 ```bash
-# bump all pinned molecule versions to latest in a composition
-uv run eif upgrade matters/three-tier-app/aws dev
+# interactive
+uv run eif upgrade
+
+# non-interactive
+uv run eif upgrade aws three-tier-app dev
 ```
 
 ### Scaffold new components
