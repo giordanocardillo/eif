@@ -6,17 +6,18 @@ CLI renderer, upgrade tool, and scaffolding.
 Commands:
     eif render  [<provider> <matter> <env>]   Render composition + env → .rendered/<env>/main.tf
     eif upgrade [<provider> <matter> <env>]   Bump all molecule sources to their latest version
-    eif new atom     [name]                   Scaffold a new atom (interactive)
-    eif new molecule [name]                   Scaffold a new molecule (interactive)
-    eif new matter   [name]                   Scaffold a new matter (interactive)
+    eif new atom     [<name> [<provider> [<category>]]]
+    eif new molecule [<name> [<provider> [<category/atom>,...  ]]]
+    eif new matter   [<name> [<provider> [<molecule>,...       ]]]
 
 Examples:
-    uv run eif render                          # interactive: select provider → matter → env
-    uv run eif render  aws three-tier-app dev
+    uv run eif render                                       # fully interactive
+    uv run eif render  aws three-tier-app dev               # fully non-interactive
     uv run eif upgrade aws three-tier-app dev
     uv run eif new atom
-    uv run eif new molecule my-service
-    uv run eif new matter   my-app
+    uv run eif new atom     my-resource aws networking
+    uv run eif new molecule my-service  aws storage/s3,networking/cloudfront
+    uv run eif new matter   my-app      aws single-page-application,db
 """
 
 import json
@@ -401,34 +402,46 @@ def cmd_upgrade(args: list[str]) -> None:
 
 # ── Commands (new) ────────────────────────────────────────────────────────────
 
-def cmd_new_atom(name_arg: str | None) -> None:
+def cmd_new_atom(args: list[str]) -> None:
     repo_root = find_repo_root(Path.cwd())
     cwd = Path.cwd()
-    print("[eif] New atom\n")
 
-    name = name_arg or _ask("name")
-
+    name     = args[0] if len(args) > 0 else _ask("name")
     providers = _detect_providers(repo_root)
     if not providers:
         sys.exit("[eif] ERROR: no providers found in providers/")
-    provider = _choose("provider", providers)
 
-    categories = ATOM_CATEGORIES + ["other"]
-    cat = _choose("category", categories)
-    if cat == "other":
-        cat = _ask("category name")
+    if len(args) > 1:
+        provider = args[1]
+        if provider not in providers:
+            sys.exit(f"[eif] ERROR: unknown provider '{provider}'. Available: {providers}")
+    else:
+        provider = _choose("provider", providers)
+
+    if len(args) > 2:
+        cat = args[2]
+    else:
+        categories = ATOM_CATEGORIES + ["other"]
+        cat = _choose("category", categories)
+        if cat == "other":
+            cat = _ask("category name")
+
+    non_interactive = len(args) >= 3
 
     atom_dir = repo_root / "atoms" / provider / cat / name
     existing = latest_version(atom_dir)
 
     if existing:
         next_ver = f"v{int(existing[1:]) + 1}"
-        print(f"\n[eif] {atom_dir.relative_to(cwd)} — latest: {existing}")
-        if not _confirm(f"create {next_ver}?"):
-            sys.exit("[eif] aborted")
+        if non_interactive:
+            print(f"[eif] {atom_dir.relative_to(cwd)} — latest: {existing}, creating {next_ver}")
+        else:
+            print(f"\n[eif] {atom_dir.relative_to(cwd)} — latest: {existing}")
+            if not _confirm(f"create {next_ver}?"):
+                sys.exit("[eif] aborted")
         new_ver = next_ver
     else:
-        print(f"\n[eif] {atom_dir.relative_to(cwd)} — no existing versions, creating v1")
+        print(f"[eif] {atom_dir.relative_to(cwd)} — no existing versions, creating v1")
         new_ver = "v1"
 
     out = atom_dir / new_ver
@@ -465,39 +478,53 @@ def cmd_new_atom(name_arg: str | None) -> None:
     print(f"\n[eif] atom ready → {out.relative_to(cwd)}")
 
 
-def cmd_new_molecule(name_arg: str | None) -> None:
+def cmd_new_molecule(args: list[str]) -> None:
     repo_root = find_repo_root(Path.cwd())
     cwd = Path.cwd()
-    print("[eif] New molecule\n")
 
-    name = name_arg or _ask("name")
-
+    name = args[0] if len(args) > 0 else _ask("name")
     providers = _detect_providers(repo_root)
     if not providers:
         sys.exit("[eif] ERROR: no providers found in providers/")
-    provider = _choose("provider", providers)
+
+    if len(args) > 1:
+        provider = args[1]
+        if provider not in providers:
+            sys.exit(f"[eif] ERROR: unknown provider '{provider}'. Available: {providers}")
+    else:
+        provider = _choose("provider", providers)
 
     mol_dir = repo_root / "molecules" / provider / name
     existing = latest_version(mol_dir)
+    non_interactive = len(args) >= 3
 
     if existing:
         next_ver = f"v{int(existing[1:]) + 1}"
-        print(f"\n[eif] {mol_dir.relative_to(cwd)} — latest: {existing}")
-        if not _confirm(f"create {next_ver}?"):
-            sys.exit("[eif] aborted")
+        if non_interactive:
+            print(f"[eif] {mol_dir.relative_to(cwd)} — latest: {existing}, creating {next_ver}")
+        else:
+            print(f"\n[eif] {mol_dir.relative_to(cwd)} — latest: {existing}")
+            if not _confirm(f"create {next_ver}?"):
+                sys.exit("[eif] aborted")
         new_ver = next_ver
     else:
-        print(f"\n[eif] {mol_dir.relative_to(cwd)} — no existing versions, creating v1")
+        print(f"[eif] {mol_dir.relative_to(cwd)} — no existing versions, creating v1")
         new_ver = "v1"
 
     # Atom selection
-    atoms = _list_atoms(provider, repo_root)
+    all_atoms = _list_atoms(provider, repo_root)
     selected_atoms: list[dict] = []
-    if atoms:
+    if len(args) > 2:
+        atom_map = {f"{a['category']}/{a['name']}": a for a in all_atoms}
+        for key in (x.strip() for x in args[2].split(",") if x.strip()):
+            if key not in atom_map:
+                sys.exit(f"[eif] ERROR: atom '{key}' not found. Available: {list(atom_map)}")
+            selected_atoms.append(atom_map[key])
+    elif all_atoms:
         print()
-        selected_atoms = _multiselect("atoms to include", atoms)
+        selected_atoms = _multiselect("atoms to include", all_atoms)
     else:
-        print(f"\n[eif] no atoms found for {provider} — scaffolding empty molecule")
+        print(f"[eif] no atoms found for {provider} — scaffolding empty molecule")
 
     out = mol_dir / new_ver
     if out.exists():
@@ -561,30 +588,40 @@ def cmd_new_molecule(name_arg: str | None) -> None:
     print(f"\n[eif] molecule ready → {out.relative_to(cwd)}")
 
 
-def cmd_new_matter(name_arg: str | None) -> None:
+def cmd_new_matter(args: list[str]) -> None:
     repo_root = find_repo_root(Path.cwd())
     cwd = Path.cwd()
-    print("[eif] New matter\n")
 
-    name = name_arg or _ask("name")
-
+    name = args[0] if len(args) > 0 else _ask("name")
     providers = _detect_providers(repo_root)
     if not providers:
         sys.exit("[eif] ERROR: no providers found in providers/")
-    provider = _choose("provider", providers)
+
+    if len(args) > 1:
+        provider = args[1]
+        if provider not in providers:
+            sys.exit(f"[eif] ERROR: unknown provider '{provider}'. Available: {providers}")
+    else:
+        provider = _choose("provider", providers)
 
     out = repo_root / "matters" / name / provider
     if out.exists():
         sys.exit(f"[eif] ERROR: {out.relative_to(cwd)} already exists")
 
     # Molecule selection
-    molecules = _list_molecules(provider, repo_root)
+    all_mols = _list_molecules(provider, repo_root)
     selected_mols: list[dict] = []
-    if molecules:
+    if len(args) > 2:
+        mol_map = {m["name"]: m for m in all_mols}
+        for mol_name in (x.strip() for x in args[2].split(",") if x.strip()):
+            if mol_name not in mol_map:
+                sys.exit(f"[eif] ERROR: molecule '{mol_name}' not found. Available: {list(mol_map)}")
+            selected_mols.append(mol_map[mol_name])
+    elif all_mols:
         print()
-        selected_mols = _multiselect("molecules to include", molecules)
+        selected_mols = _multiselect("molecules to include", all_mols)
     else:
-        print(f"\n[eif] no molecules found for {provider} — scaffolding empty matter")
+        print(f"[eif] no molecules found for {provider} — scaffolding empty matter")
 
     out.mkdir(parents=True)
     print()
@@ -648,23 +685,23 @@ def cmd_new(args: list[str]) -> None:
     if not args or args[0] not in SUB:
         sys.exit(
             "Usage:\n"
-            "  eif new atom     [name]\n"
-            "  eif new molecule [name]\n"
-            "  eif new matter   [name]"
+            "  eif new atom     [<name> [<provider> [<category>]]]\n"
+            "  eif new molecule [<name> [<provider> [<category/atom>,...]]]\n"
+            "  eif new matter   [<name> [<provider> [<molecule>,...  ]]]"
         )
-    name_arg = args[1] if len(args) > 1 else None
-    SUB[args[0]](name_arg)
+    SUB[args[0]](args[1:])
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 USAGE = (
     "Usage:\n"
-    "  eif render  [<provider> <matter> <env>]   (interactive if omitted)\n"
-    "  eif upgrade [<provider> <matter> <env>]   (interactive if omitted)\n"
-    "  eif new atom     [name]\n"
-    "  eif new molecule [name]\n"
-    "  eif new matter   [name]"
+    "  eif render  [<provider> <matter> <env>]\n"
+    "  eif upgrade [<provider> <matter> <env>]\n"
+    "  eif new atom     [<name> [<provider> [<category>]]]\n"
+    "  eif new molecule [<name> [<provider> [<category/atom>,...]]]\n"
+    "  eif new matter   [<name> [<provider> [<molecule>,...  ]]]\n"
+    "  (all args optional — missing ones are prompted interactively)"
 )
 
 def main() -> None:
