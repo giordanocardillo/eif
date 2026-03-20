@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EIF — Elemental Infrastructure Framework</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #050810;
+    --bg2: #080d1a;
+    --surface: #0d1425;
+    --border: #1a2540;
+    --accent: #4af0c4;
+    --accent2: #3a8fff;
+    --accent3: #f0884a;
+    --text: #e8eef8;
+    --text-muted: #7a8db0;
+    --atom: #4af0c4;
+    --molecule: #3a8fff;
+    --matter: #f0884a;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  /* ── GRID BACKGROUND ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(74,240,196,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(74,240,196,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 48px;
+    background: rgba(5,8,16,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .nav-logo-mark {
+    width: 36px; height: 36px;
+  }
+
+  .nav-brand {
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 32px;
+    list-style: none;
+  }
+
+  .nav-links a {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    letter-spacing: 0.05em;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover { color: var(--accent); }
+
+  /* ── HERO ── */
+  .hero {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 120px 48px 80px;
+    text-align: center;
+    overflow: hidden;
+  }
+
+  /* Glow orbs */
+  .hero::after {
+    content: '';
+    position: absolute;
+    top: 20%; left: 50%;
+    transform: translateX(-50%);
+    width: 600px; height: 600px;
+    background: radial-gradient(ellipse, rgba(74,240,196,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  /* ── LOGO SVG ── */
+  .logo-wrap {
+    margin-bottom: 48px;
+    animation: fadeUp 0.9s ease both;
+  }
+
+  .logo-svg {
+    width: 160px;
+    height: 160px;
+    filter: drop-shadow(0 0 32px rgba(74,240,196,0.25));
+  }
+
+  /* Orbital animation */
+  .nucleus-pulse {
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; r: 10; }
+    50% { opacity: 0.7; r: 12; }
+  }
+
+  /* ── BADGE ── */
+  .badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    background: rgba(74,240,196,0.08);
+    border: 1px solid rgba(74,240,196,0.2);
+    padding: 6px 16px;
+    border-radius: 2px;
+    margin-bottom: 28px;
+    display: inline-block;
+    animation: fadeUp 0.9s 0.1s ease both;
+  }
+
+  /* ── HEADINGS ── */
+  h1 {
+    font-size: clamp(3rem, 6vw, 5.5rem);
+    font-weight: 800;
+    line-height: 1.0;
+    letter-spacing: -0.02em;
+    margin-bottom: 12px;
+    animation: fadeUp 0.9s 0.2s ease both;
+  }
+
+  h1 .accent-e { color: var(--atom); }
+  h1 .accent-i { color: var(--molecule); }
+  h1 .accent-f { color: var(--matter); }
+
+  .hero-subtitle {
+    font-size: clamp(1rem, 2vw, 1.25rem);
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 32px;
+    animation: fadeUp 0.9s 0.3s ease both;
+  }
+
+  .hero-desc {
+    max-width: 640px;
+    font-size: 1.05rem;
+    line-height: 1.75;
+    color: #a8b8d8;
+    margin-bottom: 48px;
+    animation: fadeUp 0.9s 0.4s ease both;
+  }
+
+  .hero-cta {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+    animation: fadeUp 0.9s 0.5s ease both;
+  }
+
+  .btn {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    padding: 14px 28px;
+    border-radius: 2px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-block;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: var(--bg);
+    border: 1px solid var(--accent);
+  }
+  .btn-primary:hover {
+    background: transparent;
+    color: var(--accent);
+    box-shadow: 0 0 24px rgba(74,240,196,0.2);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover {
+    border-color: var(--text-muted);
+    color: var(--text);
+  }
+
+  /* ── CODE SNIPPET ── */
+  .code-pill {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--accent);
+    background: rgba(74,240,196,0.05);
+    border: 1px solid rgba(74,240,196,0.15);
+    padding: 4px 12px;
+    border-radius: 2px;
+    display: inline-block;
+    margin-top: 24px;
+    animation: fadeUp 0.9s 0.55s ease both;
+  }
+
+  /* ── SECTION ── */
+  section {
+    position: relative;
+    z-index: 1;
+    padding: 100px 48px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-size: clamp(1.8rem, 3vw, 2.6rem);
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    margin-bottom: 20px;
+  }
+
+  .section-body {
+    font-size: 1.05rem;
+    line-height: 1.8;
+    color: #a8b8d8;
+    max-width: 680px;
+  }
+
+  /* ── DIVIDER ── */
+  .divider {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+    margin: 0 auto;
+  }
+
+  /* ── HIERARCHY CARDS ── */
+  .hierarchy {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    margin-top: 64px;
+  }
+
+  .h-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 40px 32px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.3s, border-color 0.3s;
+  }
+
+  .h-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+
+  .h-card.atom::before { background: var(--atom); }
+  .h-card.molecule::before { background: var(--molecule); }
+  .h-card.matter::before { background: var(--matter); }
+
+  .h-card:hover {
+    transform: translateY(-4px);
+  }
+  .h-card.atom:hover { border-color: rgba(74,240,196,0.4); }
+  .h-card.molecule:hover { border-color: rgba(58,143,255,0.4); }
+  .h-card.matter:hover { border-color: rgba(240,136,74,0.4); }
+
+  .h-card-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    margin-bottom: 20px;
+  }
+  .atom .h-card-num { color: var(--atom); }
+  .molecule .h-card-num { color: var(--molecule); }
+  .matter .h-card-num { color: var(--matter); }
+
+  .h-card-title {
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin-bottom: 12px;
+    letter-spacing: -0.01em;
+  }
+  .atom .h-card-title { color: var(--atom); }
+  .molecule .h-card-title { color: var(--molecule); }
+  .matter .h-card-title { color: var(--matter); }
+
+  .h-card-desc {
+    font-size: 0.92rem;
+    line-height: 1.7;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+  }
+
+  .h-card-example {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    padding: 12px 14px;
+    border-radius: 2px;
+  }
+
+  .h-card-example span {
+    display: block;
+    line-height: 1.8;
+  }
+
+  .atom .h-card-example span.hi { color: var(--atom); }
+  .molecule .h-card-example span.hi { color: var(--molecule); }
+  .matter .h-card-example span.hi { color: var(--matter); }
+
+  /* ── PHILOSOPHY ── */
+  .philosophy {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    padding: 48px;
+    margin-top: 64px;
+    position: relative;
+  }
+
+  .philosophy-quote {
+    font-size: clamp(1.2rem, 2vw, 1.6rem);
+    font-weight: 700;
+    line-height: 1.5;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+
+  .philosophy-attr {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+  }
+
+  /* ── STRUCTURE ── */
+  .file-tree {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    line-height: 2;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 32px 36px;
+    margin-top: 48px;
+    border-radius: 2px;
+    overflow: auto;
+  }
+
+  .ft-dir { color: var(--accent2); }
+  .ft-atom { color: var(--atom); }
+  .ft-molecule { color: var(--molecule); }
+  .ft-matter { color: var(--matter); }
+  .ft-file { color: var(--text-muted); }
+  .ft-comment { color: #3a4a6a; }
+
+  /* ── FOOTER ── */
+  footer {
+    position: relative;
+    z-index: 1;
+    border-top: 1px solid var(--border);
+    padding: 40px 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(32px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  @media (max-width: 768px) {
+    nav { padding: 16px 24px; }
+    .nav-links { display: none; }
+    .hero { padding: 100px 24px 60px; }
+    section { padding: 60px 24px; }
+    .hierarchy { grid-template-columns: 1fr; }
+    footer { flex-direction: column; gap: 12px; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <svg class="nav-logo-mark" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="18" cy="18" r="4" fill="#4af0c4"/>
+      <ellipse cx="18" cy="18" rx="15" ry="6" stroke="#4af0c4" stroke-width="1" fill="none" opacity="0.5"/>
+      <ellipse cx="18" cy="18" rx="15" ry="6" stroke="#3a8fff" stroke-width="1" fill="none" opacity="0.5" transform="rotate(60 18 18)"/>
+      <ellipse cx="18" cy="18" rx="15" ry="6" stroke="#f0884a" stroke-width="1" fill="none" opacity="0.5" transform="rotate(120 18 18)"/>
+    </svg>
+    <span class="nav-brand">EIF</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#philosophy">Philosophy</a></li>
+    <li><a href="#hierarchy">Hierarchy</a></li>
+    <li><a href="#structure">Structure</a></li>
+    <li><a href="https://github.com/giordanocardillo/eif" target="_blank" style="color:var(--accent)">GitHub ↗</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="logo-wrap">
+    <svg id="hero-logo" class="logo-svg" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Orbit rings (static) -->
+      <ellipse cx="80" cy="80" rx="68" ry="24" stroke="#4af0c4" stroke-width="1" fill="none" opacity="0.25"/>
+      <ellipse cx="80" cy="80" rx="68" ry="24" stroke="#3a8fff" stroke-width="1" fill="none" opacity="0.25" transform="rotate(60 80 80)"/>
+      <ellipse cx="80" cy="80" rx="68" ry="24" stroke="#f0884a" stroke-width="1" fill="none" opacity="0.25" transform="rotate(120 80 80)"/>
+      <!-- Electrons -->
+      <circle id="e1" r="4.5" fill="#4af0c4"/>
+      <circle id="e2" r="4.5" fill="#3a8fff"/>
+      <circle id="e3" r="4.5" fill="#f0884a"/>
+      <!-- Inner glow -->
+      <circle cx="80" cy="80" r="28" fill="rgba(74,240,196,0.04)" stroke="rgba(74,240,196,0.15)" stroke-width="1"/>
+      <!-- Nucleus -->
+      <circle class="nucleus-pulse" cx="80" cy="80" r="10" fill="#4af0c4"/>
+      <circle cx="80" cy="80" r="6" fill="#050810"/>
+      <circle cx="80" cy="80" r="3" fill="#4af0c4"/>
+    </svg>
+  </div>
+
+  <span class="badge">v1.0.0 — TERRAFORM LIBRARY</span>
+  <h1><span class="accent-e">E</span>lemental <span class="accent-i">I</span>nfrastructure <span class="accent-f">F</span>ramework</h1>
+  <p class="hero-subtitle">Build infrastructure the way nature builds matter</p>
+  <p class="hero-desc">
+    EIF is a modular Terraform library that models AWS infrastructure with the elegance of chemistry.
+    Compose <strong style="color:var(--atom)">atoms</strong> into <strong style="color:var(--molecule)">molecules</strong>,
+    molecules into <strong style="color:var(--matter)">matter</strong> — and provision complete,
+    production-grade environments with a single declaration.
+  </p>
+  <div class="hero-cta">
+    <a href="#hierarchy" class="btn btn-primary">Explore the Model</a>
+    <a href="#structure" class="btn btn-secondary">View Structure →</a>
+  </div>
+  <span class="code-pill">terraform apply -var-file="matter/three-tier-app/composition.tfvars"</span>
+</div>
+
+<div class="divider"></div>
+
+<!-- PHILOSOPHY -->
+<section id="philosophy">
+  <p class="section-label reveal">Founding principles</p>
+  <h2 class="section-title reveal">The philosophy</h2>
+  <p class="section-body reveal">
+    Modern cloud infrastructure suffers from two opposite extremes: the monolith temptation — a single
+    Terraform repository that holds everything — and the chaotic fragmentation of disconnected modules.
+    EIF proposes a third way, inspired by chemistry: every AWS resource has its own atomic identity,
+    composable with precision into increasingly complex structures, up to fully deployable applications.
+  </p>
+
+  <div class="philosophy reveal">
+    <p class="philosophy-quote">
+      "Build infrastructure the way nature builds matter — atom by atom,<br>
+      molecule by molecule, until complexity emerges from simplicity."
+    </p>
+    <span class="philosophy-attr">— EIF Design Manifesto</span>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- HIERARCHY -->
+<section id="hierarchy">
+  <p class="section-label reveal">The compositional model</p>
+  <h2 class="section-title reveal">Three levels of abstraction</h2>
+  <p class="section-body reveal">
+    Each level builds on the previous. Atoms are independent and reusable;
+    molecules are self-contained blueprints; matter is a complete application
+    ready for provisioning.
+  </p>
+
+  <div class="hierarchy">
+    <!-- ATOM -->
+    <div class="h-card atom reveal">
+      <p class="h-card-num">LEVEL 01 — ATOM</p>
+      <h3 class="h-card-title">Atom</h3>
+      <p class="h-card-desc">
+        A single AWS service with its own Terraform files. The minimal, autonomous, and versionable unit.
+        Each atom encapsulates resources, variables, outputs, and IAM policies for one service only.
+      </p>
+      <div class="h-card-example">
+        <span class="hi">atoms/compute/lambda/</span>
+        <span class="hi">atoms/networking/cloudfront/</span>
+        <span class="hi">atoms/storage/s3/</span>
+        <span class="hi">atoms/security/waf/</span>
+        <span class="hi">atoms/security/sg/</span>
+      </div>
+    </div>
+
+    <!-- MOLECULE -->
+    <div class="h-card molecule reveal">
+      <p class="h-card-num">LEVEL 02 — MOLECULE</p>
+      <h3 class="h-card-title">Molecule</h3>
+      <p class="h-card-desc">
+        A self-contained blueprint combining multiple atoms. Represents a standard architectural pattern,
+        deployable in isolation as a coherent functional unit.
+      </p>
+      <div class="h-card-example">
+        <span class="hi">molecules/swa/</span>
+        <span>  ├── cloudfront + s3 + waf</span>
+        <span class="hi">molecules/db/</span>
+        <span>  ├── rds + security-group</span>
+        <span class="hi">molecules/lambda-svc/</span>
+        <span>  ├── lambda + sg</span>
+      </div>
+    </div>
+
+    <!-- MATTER -->
+    <div class="h-card matter reveal">
+      <p class="h-card-num">LEVEL 03 — MATTER</p>
+      <h3 class="h-card-title">Matter</h3>
+      <p class="h-card-desc">
+        A complete application composed of n molecules. Declared through a <code style="color:var(--matter);background:rgba(240,136,74,0.1);padding:2px 6px;border-radius:2px;">composition.tfvars</code> file
+        that defines the molecule stack and their configurations — not a simple variable, but a full matter template.
+      </p>
+      <div class="h-card-example">
+        <span class="hi">matter/three-tier-app/</span>
+        <span>  ├── composition.tfvars</span>
+        <span>  ├── main.tf</span>
+        <span>  └── outputs.tf</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- STRUCTURE -->
+<section id="structure">
+  <p class="section-label reveal">Repository layout</p>
+  <h2 class="section-title reveal">Project structure</h2>
+  <p class="section-body reveal">
+    The repository is organized to faithfully mirror the model hierarchy.
+    Each directory is self-contained and follows a consistent naming convention.
+  </p>
+
+  <div class="file-tree reveal">
+<pre>
+<span class="ft-dir">eif/</span>
+<span class="ft-comment">│</span>
+<span class="ft-atom">├── atoms/</span>                     <span class="ft-comment"># Atomic AWS services</span>
+<span class="ft-atom">│   ├── compute/</span>
+<span class="ft-file">│   │   ├── lambda/</span>             <span class="ft-comment"># main.tf, variables.tf, outputs.tf</span>
+<span class="ft-file">│   │   └── ecs/</span>
+<span class="ft-atom">│   ├── networking/</span>
+<span class="ft-file">│   │   ├── cloudfront/</span>
+<span class="ft-file">│   │   └── api-gateway/</span>
+<span class="ft-atom">│   ├── storage/</span>
+<span class="ft-file">│   │   ├── s3/</span>
+<span class="ft-file">│   │   └── rds/</span>
+<span class="ft-atom">│   └── security/</span>
+<span class="ft-file">│       ├── waf/</span>
+<span class="ft-file">│       └── sg/</span>
+<span class="ft-comment">│</span>
+<span class="ft-molecule">├── molecules/</span>                  <span class="ft-comment"># Self-contained blueprints</span>
+<span class="ft-file">│   ├── swa/</span>                    <span class="ft-comment"># Static Web App</span>
+<span class="ft-file">│   ├── db/</span>                     <span class="ft-comment"># Database tier</span>
+<span class="ft-file">│   └── lambda-svc/</span>             <span class="ft-comment"># Lambda service</span>
+<span class="ft-comment">│</span>
+<span class="ft-matter">└── matter/</span>                     <span class="ft-comment"># Complete applications</span>
+<span class="ft-file">    ├── three-tier-app/</span>
+<span class="ft-file">    │   ├── composition.tfvars</span>  <span class="ft-comment"># molecule stack + config</span>
+<span class="ft-file">    │   ├── main.tf</span>
+<span class="ft-file">    │   └── outputs.tf</span>
+<span class="ft-file">    └── serverless-api/</span>
+<span class="ft-file">        ├── composition.tfvars</span>
+<span class="ft-file">        ├── main.tf</span>
+<span class="ft-file">        └── outputs.tf</span>
+</pre>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <span>© 2025 Elemental Infrastructure Framework</span>
+  <span style="color:var(--accent)">EIF — v1.0.0</span>
+  <span>Built on Terraform · AWS · Open Source</span>
+</footer>
+
+<script>
+  // Intersection Observer for reveal animations
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => entry.target.classList.add('visible'), i * 80);
+      }
+    });
+  }, { threshold: 0.1 });
+  reveals.forEach(el => observer.observe(el));
+
+  // Electron animation — parametric ellipse with orbit rotation
+  // Point on ellipse: rotate (rx*cos(t), ry*sin(t)) by orbitAngle around center
+  const cx = 80, cy = 80, rx = 68, ry = 24;
+
+  const electrons = [
+    { el: document.getElementById('e1'), orbitAngle: 0,              period: 10000, offset: 0 },
+    { el: document.getElementById('e2'), orbitAngle: Math.PI / 3,    period: 7000,  offset: 2000 },
+    { el: document.getElementById('e3'), orbitAngle: 2 * Math.PI / 3, period: 14000, offset: 5000 },
+  ];
+
+  function tick(ts) {
+    electrons.forEach(({ el, orbitAngle, period, offset }) => {
+      const t = ((ts + offset) % period) / period * 2 * Math.PI;
+      // Local ellipse point
+      const lx = rx * Math.cos(t);
+      const ly = ry * Math.sin(t);
+      // Rotate by orbitAngle
+      const cosA = Math.cos(orbitAngle);
+      const sinA = Math.sin(orbitAngle);
+      const x = cx + lx * cosA - ly * sinA;
+      const y = cy + lx * sinA + ly * cosA;
+      el.setAttribute('cx', x.toFixed(3));
+      el.setAttribute('cy', y.toFixed(3));
+    });
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+</script>
+</body>
+</html>
