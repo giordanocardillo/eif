@@ -932,15 +932,16 @@
   // Scrollspy — highlight nav link for the section most visible in the viewport
   const sections = document.querySelectorAll('section[id]');
   const navLinks = document.querySelectorAll('.nav-links a[href^="#"]');
+  const visible  = new Set();
 
   const spy = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        navLinks.forEach(a => a.classList.remove('active'));
-        const active = document.querySelector(`.nav-links a[href="#${entry.target.id}"]`);
-        if (active) active.classList.add('active');
-      }
+      entry.isIntersecting ? visible.add(entry.target) : visible.delete(entry.target);
     });
+    navLinks.forEach(a => a.classList.remove('active'));
+    if (!visible.size) return;
+    const top = [...visible].sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top)[0];
+    document.querySelector(`.nav-links a[href="#${top.id}"]`)?.classList.add('active');
   }, { rootMargin: '-40% 0px -55% 0px' });
 
   sections.forEach(s => spy.observe(s));
