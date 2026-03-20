@@ -1,0 +1,18 @@
+[project]
+name = "eif"
+version = "0.1.0"
+description = "Elemental Infrastructure Framework — Jinja2 to HCL renderer"
+requires-python = ">=3.11"
+dependencies = [
+    "jinja2>=3.1",
+]
+
+[project.scripts]
+eif = "eif:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+dev-dependencies = []
