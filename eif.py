@@ -185,6 +185,67 @@ def _detect_providers(repo_root: Path) -> list[str]:
     return sorted(d.name for d in providers_dir.iterdir() if d.is_dir())
 
 
+def _list_atoms(provider: str, repo_root: Path) -> list[dict]:
+    """Return all versioned atoms for a provider as a list of dicts."""
+    atoms_dir = repo_root / "atoms" / provider
+    if not atoms_dir.is_dir():
+        return []
+    result = []
+    for cat in sorted(atoms_dir.iterdir()):
+        if not cat.is_dir():
+            continue
+        for atom in sorted(cat.iterdir()):
+            if not atom.is_dir():
+                continue
+            ver = latest_version(atom)
+            if ver:
+                result.append({
+                    "label":    f"{cat.name}/{atom.name}  ({ver})",
+                    "name":     atom.name,
+                    "category": cat.name,
+                    "version":  ver,
+                    "rel_path": f"../../../../atoms/{provider}/{cat.name}/{atom.name}/{ver}",
+                })
+    return result
+
+
+def _list_molecules(provider: str, repo_root: Path) -> list[dict]:
+    """Return all versioned molecules for a provider as a list of dicts."""
+    mol_dir = repo_root / "molecules" / provider
+    if not mol_dir.is_dir():
+        return []
+    result = []
+    for mol in sorted(mol_dir.iterdir()):
+        if not mol.is_dir():
+            continue
+        ver = latest_version(mol)
+        if ver:
+            result.append({
+                "label":   f"{mol.name}  ({ver})",
+                "name":    mol.name,
+                "version": ver,
+                "source":  f"molecules/{provider}/{mol.name}/{ver}",
+            })
+    return result
+
+
+def _multiselect(label: str, items: list[dict]) -> list[dict]:
+    """Present a numbered list and return the user-selected subset (at least one)."""
+    print(f"  {label}:")
+    for i, item in enumerate(items, 1):
+        print(f"    {i}) {item['label']}")
+    while True:
+        raw = _prompt("select (comma-separated, e.g. 1,3)")
+        try:
+            parts = [x.strip() for x in raw.split(",") if x.strip()]
+            indices = [int(p) - 1 for p in parts]
+            if parts and all(0 <= idx < len(items) for idx in indices):
+                return [items[idx] for idx in indices]
+        except ValueError:
+            pass
+        print(f"  [!] enter comma-separated numbers from 1 to {len(items)}")
+
+
 def _provider_tf_block(provider: str) -> str:
     if provider in _PROVIDER_TF:
         return _PROVIDER_TF[provider]
@@ -399,21 +460,45 @@ def cmd_new_molecule(name_arg: str | None) -> None:
         print(f"\n[eif] {mol_dir.relative_to(cwd)} — no existing versions, creating v1")
         new_ver = "v1"
 
+    # Atom selection
+    atoms = _list_atoms(provider, repo_root)
+    selected_atoms: list[dict] = []
+    if atoms:
+        print()
+        selected_atoms = _multiselect("atoms to include", atoms)
+    else:
+        print(f"\n[eif] no atoms found for {provider} — scaffolding empty molecule")
+
     out = mol_dir / new_ver
     if out.exists():
         sys.exit(f"[eif] ERROR: {out.relative_to(cwd)} already exists")
     out.mkdir(parents=True)
+    print()
 
     tf = _provider_tf_block(provider)
 
-    _write(out / "main.tf", (
-        f"{tf}\n"
-        f"# TODO: add module blocks referencing atoms/{provider}/...\n"
-        "# module \"example\" {\n"
-        f"#   source      = \"../../../../atoms/{provider}/<category>/<name>/v1\"\n"
-        "#   environment = var.environment\n"
-        "# }\n"
-    ), cwd)
+    # main.tf — one module block per selected atom
+    main_tf = f"{tf}\n"
+    if selected_atoms:
+        for atom in selected_atoms:
+            bar = "─" * max(1, 60 - len(atom["category"]) - len(atom["name"]))
+            main_tf += (
+                f"# ── Atom: {atom['category']}/{atom['name']} {bar}\n"
+                f"module \"{atom['name']}\" {{\n"
+                f"  source = \"{atom['rel_path']}\"\n\n"
+                f"  environment = var.environment\n"
+                f"  # TODO: add variables\n"
+                f"}}\n\n"
+            )
+    else:
+        main_tf += (
+            f"# TODO: add module blocks referencing atoms/{provider}/...\n"
+            "# module \"example\" {\n"
+            f"#   source      = \"../../../../atoms/{provider}/<category>/<name>/v1\"\n"
+            "#   environment = var.environment\n"
+            "# }\n"
+        )
+    _write(out / "main.tf", main_tf, cwd)
 
     _write(out / "variables.tf", (
         'variable "environment" {\n'
@@ -423,13 +508,25 @@ def cmd_new_molecule(name_arg: str | None) -> None:
         "# TODO: add variables\n"
     ), cwd)
 
-    _write(out / "outputs.tf", (
-        "# TODO: expose atom outputs\n"
-        "# output \"example_id\" {\n"
-        "#   description = \"...\"\n"
-        "#   value       = module.example.id\n"
-        "# }\n"
-    ), cwd)
+    # outputs.tf — one commented stub per selected atom
+    if selected_atoms:
+        outputs_tf = "# TODO: expose atom outputs\n"
+        for atom in selected_atoms:
+            outputs_tf += (
+                f"# output \"{atom['name']}_id\" {{\n"
+                f"#   description = \"...\"\n"
+                f"#   value       = module.{atom['name']}.id\n"
+                f"# }}\n"
+            )
+        _write(out / "outputs.tf", outputs_tf, cwd)
+    else:
+        _write(out / "outputs.tf", (
+            "# TODO: expose atom outputs\n"
+            "# output \"example_id\" {\n"
+            "#   description = \"...\"\n"
+            "#   value       = module.example.id\n"
+            "# }\n"
+        ), cwd)
 
     print(f"\n[eif] molecule ready → {out.relative_to(cwd)}")
 
@@ -449,25 +546,51 @@ def cmd_new_matter(name_arg: str | None) -> None:
     out = repo_root / "matters" / name / provider
     if out.exists():
         sys.exit(f"[eif] ERROR: {out.relative_to(cwd)} already exists")
-    out.mkdir(parents=True)
 
+    # Molecule selection
+    molecules = _list_molecules(provider, repo_root)
+    selected_mols: list[dict] = []
+    if molecules:
+        print()
+        selected_mols = _multiselect("molecules to include", molecules)
+    else:
+        print(f"\n[eif] no molecules found for {provider} — scaffolding empty matter")
+
+    out.mkdir(parents=True)
     print()
 
-    composition = {"matter": name, "molecules": []}
+    # composition.json
+    composition = {
+        "matter": name,
+        "molecules": [{"name": m["name"], "source": m["source"]} for m in selected_mols],
+    }
     (out / "composition.json").write_text(json.dumps(composition, indent=2) + "\n")
     print(f"[eif] created   {(out / 'composition.json').relative_to(cwd)}")
 
     _write(out / "dev.example.json",  json.dumps({"account": "dev"},  indent=2) + "\n", cwd)
     _write(out / "prod.example.json", json.dumps({"account": "prod"}, indent=2) + "\n", cwd)
 
-    _write(out / "main.tf.j2", (
-        "{{ provider_block }}\n"
-        "# ── Molecules ─────────────────────────────────────────────────────────────────\n\n"
-        "# TODO: add module blocks\n"
-        "# module \"example\" {\n"
-        "#   source      = \"{{ src['example'] }}\"\n"
-        "#   environment = \"{{ environment }}\"\n"
-        "# }\n\n"
+    # main.tf.j2 — one module block per selected molecule
+    template = "{{ provider_block }}\n"
+    template += "# ── Molecules ─────────────────────────────────────────────────────────────────\n\n"
+    if selected_mols:
+        for mol in selected_mols:
+            template += (
+                f"module \"{mol['name']}\" {{\n"
+                f"  source = \"{{{{ src['{mol['name']}'] }}}}\"\n\n"
+                f"  environment = \"{{{{ environment }}}}\"\n"
+                f"  # TODO: add variables\n"
+                f"}}\n\n"
+            )
+    else:
+        template += (
+            "# TODO: add module blocks\n"
+            "# module \"example\" {\n"
+            "#   source      = \"{{ src['example'] }}\"\n"
+            "#   environment = \"{{ environment }}\"\n"
+            "# }\n\n"
+        )
+    template += (
         "# ── Outputs ───────────────────────────────────────────────────────────────────\n"
         "{% for mol in molecules %}\n"
         "output \"{{ mol.name | replace('-', '_') }}_outputs\" {\n"
@@ -475,15 +598,15 @@ def cmd_new_matter(name_arg: str | None) -> None:
         "  value       = module.{{ mol.name }}\n"
         "}\n"
         "{% endfor %}\n"
-    ), cwd)
+    )
+    _write(out / "main.tf.j2", template, cwd)
 
     render_path = out.relative_to(cwd)
     print(f"\n[eif] matter ready → {render_path}")
     print(f"[eif] next steps:")
-    print(f"[eif]   1. add molecules to {(out / 'composition.json').relative_to(cwd)}")
-    print(f"[eif]   2. cp {(out / 'dev.example.json').relative_to(cwd)} {(out / 'dev.json').relative_to(cwd)}")
-    print(f"[eif]   3. wire variables in {(out / 'main.tf.j2').relative_to(cwd)}")
-    print(f"[eif]   4. uv run eif render {render_path} dev")
+    print(f"[eif]   1. cp {(out / 'dev.example.json').relative_to(cwd)} {(out / 'dev.json').relative_to(cwd)}")
+    print(f"[eif]   2. wire variables in {(out / 'main.tf.j2').relative_to(cwd)}")
+    print(f"[eif]   3. uv run eif render {render_path} dev")
 
 
 def cmd_new(args: list[str]) -> None:
