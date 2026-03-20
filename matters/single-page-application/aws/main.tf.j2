@@ -11,11 +11,3 @@ module "single-page-application" {
   waf_name               = "{{ waf_name }}"
   waf_managed_rule_group = "{{ waf_managed_rule_group }}"
 }
-
-# ── Outputs ───────────────────────────────────────────────────────────────────
-{% for mol in molecules %}
-output "{{ mol.name | replace('-', '_') }}_outputs" {
-  description = "Outputs from the {{ mol.name }} molecule."
-  value       = module.{{ mol.name }}
-}
-{% endfor %}
