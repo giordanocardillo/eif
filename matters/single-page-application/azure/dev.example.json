@@ -6,7 +6,7 @@
   "storage_account_name": "YOUR_STORAGE_ACCOUNT_NAME",
   "account_tier": "Standard",
   "account_replication_type": "LRS",
-  "cdn_profile_name": "YOUR_APP_NAME-cdn-dev",
-  "cdn_endpoint_name": "YOUR_APP_NAME-endpoint-dev",
-  "cdn_sku": "Standard_Microsoft"
+  "frontdoor_profile_name": "YOUR_APP_NAME-fd-dev",
+  "frontdoor_endpoint_name": "YOUR_APP_NAME-endpoint-dev",
+  "frontdoor_sku_name": "Standard_AzureFrontDoor"
 }
