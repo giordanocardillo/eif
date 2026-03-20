@@ -139,53 +139,49 @@ The `accounts.json` entry for each environment declares which provider to use:
 
 ## ◫ Structure
 
+This repository contains the **CLI tool only**. The component library lives in [eif-library](https://github.com/giordanocardillo/eif-library).
+
 ```
-eif/
+eif/                        ← this repo — the CLI tool
+├── eif.py
+├── pyproject.toml
+└── examples/               ← reference implementation
+    ├── accounts.example.json
+    ├── providers/
+    ├── atoms/
+    ├── molecules/
+    └── matters/
+```
+
+When using EIF in practice, your library repo follows this layout:
+
+```
+your-eif-library/
 │
 ├── accounts.json                   # env → cloud account config
-├── eif.py                          # renderer CLI
-├── pyproject.toml                  # Python project (uv / hatchling)
 │
 ├── providers/                      # Cloud provider templates (pluggable)
-│   ├── aws/provider.tf.j2          # terraform{} + provider "aws"
-│   ├── azure/provider.tf.j2        # terraform{} + provider "azurerm"
-│   └── gcp/provider.tf.j2          # terraform{} + provider "google"
+│   ├── aws/
+│   │   ├── provider.tf.j2          # terraform{} + provider "aws"
+│   │   └── backend.tf.j2           # S3 backend block
+│   ├── azure/
+│   │   ├── provider.tf.j2
+│   │   └── backend.tf.j2
+│   └── gcp/
+│       ├── provider.tf.j2
+│       └── backend.tf.j2
 │
 ├── atoms/                          # Atomic cloud services (plain HCL)
-│   ├── aws/
-│   │   ├── compute/lambda/v1/      # main.tf · variables.tf · outputs.tf
-│   │   ├── networking/cloudfront/v1/
-│   │   ├── storage/s3/v1/ · storage/rds/v1/
-│   │   └── security/waf/v1/ · security/sg/v1/
-│   ├── azure/
-│   │   ├── storage/blob/v1/
-│   │   └── networking/frontdoor/v1/
-│   └── gcp/
-│       ├── storage/gcs/v1/
-│       ├── networking/cdn/v1/
-│       └── security/armor/v1/
+│   └── <cloud>/<category>/<name>/v1/   # main.tf · variables.tf · outputs.tf
 │
 ├── molecules/                      # Architectural blueprints
-│   ├── aws/
-│   │   ├── single-page-application/v1/   # s3/v1 + cloudfront/v1 + waf/v1
-│   │   ├── db/v1/                        # rds/v1 + sg/v1
-│   │   └── lambda-svc/v1/               # lambda/v1 + sg/v1
-│   ├── azure/
-│   │   └── single-page-application/v1/   # blob/v1 + frontdoor/v1
-│   └── gcp/
-│       └── single-page-application/v1/   # gcs/v1 + cdn/v1 + armor/v1
+│   └── <cloud>/<name>/v1/
 │
 └── matters/                        # Deployable applications
-    ├── three-tier-app/
-    │   └── aws/
-    │       ├── composition.json    # molecule list + pinned versions (stable)
-    │       ├── dev.json · test.json · prod.json
-    │       ├── main.tf.j2          # Jinja2 template
-    │       └── .rendered/          # gitignored — render artifacts
-    └── single-page-application/
-        ├── aws/
-        ├── azure/
-        └── gcp/
+    └── <name>/<cloud>/
+        ├── composition.json        # molecule list + pinned versions
+        ├── <env>.json              # flat variable pool per environment
+        └── main.tf.j2              # wiring template
 ```
 
 ---
@@ -276,13 +272,22 @@ uv run eif upgrade matters/three-tier-app/aws dev
 ### Install
 
 ```bash
-# install eif as a shell command (recommended)
+# install eif as a shell command
+uv tool install git+https://github.com/giordanocardillo/eif
+
+# or editable from a local clone (changes to eif.py take effect immediately)
 uv tool install --editable .
 ```
 
-This makes `eif` available globally on your PATH. The `--editable` flag means changes to `eif.py` take effect immediately without reinstalling.
+Then clone your component library and work from inside it:
 
-> **Without a global install:** `uv run eif <command>` works the same way from inside the repo.
+```bash
+git clone https://github.com/giordanocardillo/eif-library
+cd eif-library
+cp accounts.example.json accounts.json   # fill in your credentials
+```
+
+All `eif` commands are run from inside the library directory — `eif` finds the repo root by walking up to `accounts.json`.
 
 ### Render only
 

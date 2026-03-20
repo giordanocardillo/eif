@@ -1,14 +1,14 @@
 # EIF — real config files (copy from *.example.json and fill in values)
 accounts.json
-matters/**/dev.json
-matters/**/test.json
-matters/**/prod.json
+**/dev.json
+**/test.json
+**/prod.json
 
 # EIF rendered outputs
-matters/**/.rendered/
+**/.rendered/
 
 # EIF local deployment history (use remote backend for team sharing)
-matters/**/.history/
+**/.history/
 
 # Terraform
 **/.terraform/
@@ -16,3 +16,8 @@ matters/**/.history/
 *.tfstate.backup
 *.tfplan
 .terraform.lock.hcl
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
