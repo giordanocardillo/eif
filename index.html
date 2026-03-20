@@ -510,6 +510,7 @@
     <li><a href="#providers">Providers</a></li>
     <li><a href="#versioning">Versioning</a></li>
     <li><a href="#scaffolding">Scaffold</a></li>
+    <li><a href="#state">State</a></li>
     <li><a href="#structure">Structure</a></li>
     <li><a href="https://github.com/giordanocardillo/eif" target="_blank" style="color:var(--accent)">GitHub ↗</a></li>
   </ul>
@@ -548,7 +549,7 @@
     <a href="#hierarchy" class="btn btn-primary">Explore the Model</a>
     <a href="#structure" class="btn btn-secondary">View Structure →</a>
   </div>
-  <span class="code-pill">uv run eif render matters/three-tier-app/aws dev</span>
+  <span class="code-pill">uv run eif apply aws three-tier-app dev</span>
 </div>
 
 <div class="divider"></div>
@@ -767,6 +768,55 @@
 
 <div class="divider"></div>
 
+<!-- STATE -->
+<section id="state">
+  <p class="section-label reveal">Deployment lifecycle</p>
+  <h2 class="section-title reveal">State &amp; rollback</h2>
+  <p class="section-body reveal">
+    EIF wraps the full Terraform lifecycle. Every successful <code>apply</code> saves a snapshot
+    of the rendered <code>main.tf</code> — locally and, if a backend is configured, in the same
+    remote bucket as the Terraform state. Rollback restores any previous snapshot and re-applies.
+  </p>
+
+  <div class="file-tree reveal" style="margin-top:48px;">
+<pre>
+<span class="ft-comment"># plan — render + terraform plan (no changes applied)</span>
+<span style="color:var(--accent)">uv run eif plan</span> aws three-tier-app dev
+
+<span class="ft-comment"># apply — render + init + apply + snapshot on success</span>
+<span style="color:var(--accent)">uv run eif apply</span> aws three-tier-app dev
+<span class="ft-comment">  [eif] rendered  → matters/three-tier-app/aws/.rendered/dev/main.tf</span>
+<span class="ft-comment">  [eif] running   terraform -chdir=... init</span>
+<span class="ft-comment">  [eif] running   terraform -chdir=... apply</span>
+<span class="ft-comment">  [eif] snapshot  → .history/dev/20260320T143012Z/main.tf</span>
+
+<span class="ft-comment"># rollback — pick a snapshot and re-apply</span>
+<span style="color:var(--accent)">uv run eif rollback</span> aws three-tier-app dev
+<span class="ft-comment">  snapshot to restore:</span>
+<span class="ft-comment">  ❯ 20260320T143012Z</span>
+<span class="ft-comment">    20260319T091500Z</span>
+<span class="ft-comment">    20260318T182244Z</span>
+
+<span class="ft-comment"># destroy — terraform destroy against last rendered output</span>
+<span style="color:var(--accent)">uv run eif destroy</span> aws three-tier-app dev
+</pre>
+  </div>
+
+  <div class="philosophy reveal" style="margin-top:32px;">
+    <p class="philosophy-quote" style="font-size:0.9rem;font-weight:400;line-height:1.9;color:var(--text-muted);">
+      Add a <strong style="color:var(--text)">backend</strong> key to any account in <code>accounts.json</code> to enable remote state.<br>
+      EIF injects the correct <span style="font-family:'Space Mono',monospace;color:var(--atom)">backend {}</span> block automatically — S3, Azure Blob, or GCS.<br><br>
+      Bootstrap the state bucket in one command:<br>
+      <span style="font-family:'Space Mono',monospace;color:var(--accent);font-size:0.85rem;">uv run eif init backend aws three-tier-app prod</span><br>
+      <span style="font-family:'Space Mono',monospace;color:var(--accent);font-size:0.85rem;">uv run eif init account</span>
+      <span style="font-family:'Space Mono',monospace;color:var(--text-muted);font-size:0.85rem;"> ← add a new account entry interactively</span>
+    </p>
+    <span class="philosophy-attr">No backend? EIF keeps snapshots in .history/ — gitignored, local-only.</span>
+  </div>
+</section>
+
+<div class="divider"></div>
+
 <!-- STRUCTURE -->
 <section id="structure">
   <p class="section-label reveal">Repository layout</p>
@@ -781,13 +831,13 @@
 <span class="ft-dir">eif/</span>
 <span class="ft-comment">│</span>
 <span class="ft-file">├── accounts.json</span>              <span class="ft-comment"># env → cloud account config</span>
-<span class="ft-file">├── eif.py</span>                     <span class="ft-comment"># renderer + upgrade + scaffold CLI</span>
+<span class="ft-file">├── eif.py</span>                     <span class="ft-comment"># renderer, lifecycle (plan/apply/destroy/rollback), scaffold CLI</span>
 <span class="ft-file">├── pyproject.toml</span>              <span class="ft-comment"># Python project (uv / hatchling)</span>
 <span class="ft-comment">│</span>
 <span class="ft-file">├── providers/</span>                  <span class="ft-comment"># Pluggable cloud provider templates</span>
-<span class="ft-file">│   ├── aws/provider.tf.j2</span>
-<span class="ft-file">│   ├── azure/provider.tf.j2</span>
-<span class="ft-file">│   └── gcp/provider.tf.j2</span>
+<span class="ft-file">│   ├── aws/provider.tf.j2 · backend.tf.j2</span>
+<span class="ft-file">│   ├── azure/provider.tf.j2 · backend.tf.j2</span>
+<span class="ft-file">│   └── gcp/provider.tf.j2 · backend.tf.j2</span>
 <span class="ft-comment">│</span>
 <span class="ft-atom">├── atoms/</span>                     <span class="ft-comment"># Atomic cloud services — namespaced + versioned</span>
 <span class="ft-file">│   ├── aws/</span>
@@ -818,7 +868,9 @@
 <span class="ft-matter">    │   └── aws/</span>
 <span class="ft-file">    │       ├── composition.json</span>   <span class="ft-comment"># molecule list + pinned versions</span>
 <span class="ft-file">    │       ├── dev.json · test.json · prod.json</span>
-<span class="ft-file">    │       └── main.tf.j2</span>
+<span class="ft-file">    │       ├── main.tf.j2</span>
+<span class="ft-file">    │       ├── .rendered/dev/     </span> <span class="ft-comment"># gitignored — terraform output</span>
+<span class="ft-file">    │       └── .history/dev/      </span> <span class="ft-comment"># gitignored — apply snapshots</span>
 <span class="ft-file">    └── single-page-application/</span>
 <span class="ft-matter">        ├── aws/  ├── azure/  └── gcp/</span>
 </pre>
