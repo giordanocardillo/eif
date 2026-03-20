@@ -52,6 +52,8 @@ A combination of atoms forming a coherent architectural pattern. Molecules are s
 | Molecule | Atoms |
 |---|---|
 | `swa` | `s3` + `cloudfront` + `waf` |
+| `db` | `rds` + `sg` |
+| `lambda-svc` | `lambda` + `sg` |
 
 ---
 
@@ -174,12 +176,11 @@ Matter is the only deployment entry point. Atoms and molecules are internal — 
 
 ## ◌ Roadmap
 
-- [x] Atom library: `s3`, `cloudfront`, `waf`
-- [x] Molecule library: `swa`
-- [x] Matter template: `three-tier-app`
+- [x] Atom library: `s3`, `cloudfront`, `waf`, `lambda`, `rds`, `sg`
+- [x] Molecule library: `swa`, `db`, `lambda-svc`
+- [x] Matter template: `three-tier-app` (`swa` + `db` + `lambda-svc`)
 - [x] Jinja2 → HCL renderer (`eif.py`)
-- [ ] Atom library: compute (`lambda`, `ecs`), networking (`api-gateway`), storage (`rds`), security (`sg`)
-- [ ] Molecule library: `db`, `lambda-svc`, `api-gw`
+- [ ] Atom library: compute (`ecs`), networking (`api-gateway`)
 - [ ] Matter template: `serverless-api`
 - [ ] Remote state management per matter
 - [ ] CI/CD pipeline examples (GitHub Actions / Azure DevOps)
