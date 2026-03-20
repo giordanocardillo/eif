@@ -576,11 +576,39 @@ def cmd_upgrade(args: list[str]) -> None:
         print("[eif] nothing to upgrade")
 
 
+# ── Vulnerability scanner ──────────────────────────────────────────────────────
+
+def _scan(output_dir: Path) -> None:
+    """
+    Run trivy config scan on the rendered output directory if trivy is on PATH.
+    Blocks on CRITICAL or HIGH findings. Skips silently if trivy is not installed.
+    """
+    if not shutil.which("trivy"):
+        print("[eif] scan      → skipped (trivy not found — install to enable)")
+        return
+
+    print(f"[eif] scanning  → trivy config {output_dir}")
+    rc = subprocess.run([
+        "trivy", "config",
+        "--severity", "CRITICAL,HIGH",
+        "--exit-code", "1",
+        str(output_dir),
+    ]).returncode
+
+    if rc != 0:
+        sys.exit(
+            "[eif] ERROR: scan found CRITICAL or HIGH vulnerabilities — fix before deploying\n"
+            "[eif]        run 'eif scan' for the full report"
+        )
+    print("[eif] scan      → passed")
+
+
 # ── Commands (plan / apply / destroy / rollback) ───────────────────────────────
 
 def cmd_plan(args: list[str]) -> None:
     matter_path, env = _resolve_matter_and_env(args)
     output_dir, _, _, _, _ = _do_render(matter_path, env)
+    _scan(output_dir)
     rc = _tf(["init", "-input=false"], output_dir)
     if rc != 0:
         sys.exit(rc)
@@ -592,6 +620,8 @@ def cmd_apply(args: list[str]) -> None:
     output_dir, account_config, _, _, _ = _do_render(matter_path, env)
     matter_name = matter_path.parent.name
 
+    _scan(output_dir)
+
     rc = _tf(["init", "-input=false"], output_dir)
     if rc != 0:
         sys.exit(rc)
@@ -601,6 +631,26 @@ def cmd_apply(args: list[str]) -> None:
         sys.exit(rc)
 
     _take_snapshot(output_dir, matter_path, matter_name, env, account_config)
+
+
+def cmd_scan(args: list[str]) -> None:
+    matter_path, env = _resolve_matter_and_env(args)
+    output_dir = matter_path / ".rendered" / env
+    if not output_dir.is_dir():
+        sys.exit(
+            f"[eif] ERROR: no rendered output at {output_dir} — run 'eif render' first"
+        )
+    if not shutil.which("trivy"):
+        sys.exit(
+            "[eif] ERROR: trivy not found\n"
+            "[eif]        install from https://aquasecurity.github.io/trivy"
+        )
+    print(f"[eif] scanning  → trivy config {output_dir}")
+    subprocess.run([
+        "trivy", "config",
+        "--severity", "CRITICAL,HIGH,MEDIUM,LOW",
+        str(output_dir),
+    ])
 
 
 def cmd_destroy(args: list[str]) -> None:
@@ -1176,6 +1226,7 @@ USAGE = (
     "  eif list providers|atoms|molecules|matters  [<provider>]\n"
     "  eif render   [<provider> <matter> <env>]\n"
     "  eif upgrade  [<provider> <matter> <env>]\n"
+    "  eif scan     [<provider> <matter> <env>]\n"
     "  eif plan     [<provider> <matter> <env>]\n"
     "  eif apply    [<provider> <matter> <env>]\n"
     "  eif destroy  [<provider> <matter> <env>]\n"
@@ -1185,7 +1236,8 @@ USAGE = (
     "  eif new atom     [<name> [<provider> [<category>]]]\n"
     "  eif new molecule [<name> [<provider> [<category/atom>,...]]]\n"
     "  eif new matter   [<name> [<provider> [<molecule>,...  ]]]\n"
-    "  (all positional args optional — missing ones are prompted interactively)"
+    "  (all positional args optional — missing ones are prompted interactively)\n"
+    "  (eif plan/apply auto-scan if trivy is on PATH — blocks on CRITICAL/HIGH)"
 )
 
 def main() -> None:
@@ -1198,6 +1250,7 @@ def main() -> None:
         "version":  cmd_version,
         "list":     cmd_list,
         "render":   cmd_render,
+        "scan":     cmd_scan,
         "upgrade":  cmd_upgrade,
         "plan":     cmd_plan,
         "apply":    cmd_apply,
