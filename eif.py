@@ -11,7 +11,7 @@ Commands:
     eif destroy  [<provider> <matter> <env>]  Run terraform destroy on the rendered output
     eif rollback [<provider> <matter> <env>]  Restore a previous snapshot and re-apply
     eif init backend [<provider> <matter> <env>]  Bootstrap remote state bucket
-    eif init account                              Add an account entry to accounts.json
+    eif add account                               Add an account entry to accounts.json
     eif new atom     [<name> [<provider> [<category>]]]
     eif new molecule [<name> [<provider> [<category/atom>,...  ]]]
     eif new matter   [<name> [<provider> [<molecule>,...       ]]]
@@ -25,7 +25,7 @@ Examples:
     uv run eif destroy  aws three-tier-app dev
     uv run eif rollback aws three-tier-app dev
     uv run eif init backend aws three-tier-app dev
-    uv run eif init account
+    uv run eif add account
     uv run eif new atom
     uv run eif new atom     my-resource aws networking
     uv run eif new molecule my-service  aws storage/s3,networking/cloudfront
@@ -797,16 +797,19 @@ def cmd_init_account(args: list[str]) -> None:  # noqa: ARG001
 
 
 def cmd_init(args: list[str]) -> None:
-    SUB = {
-        "backend": cmd_init_backend,
-        "account": cmd_init_account,
-    }
+    SUB = {"backend": cmd_init_backend}
     if not args or args[0] not in SUB:
         sys.exit(
             "Usage:\n"
-            "  eif init backend [<provider> <matter> <env>]  Bootstrap remote state bucket\n"
-            "  eif init account                              Add an account to accounts.json"
+            "  eif init backend [<provider> <matter> <env>]  Bootstrap remote state bucket"
         )
+    SUB[args[0]](args[1:])
+
+
+def cmd_add(args: list[str]) -> None:
+    SUB = {"account": cmd_init_account}
+    if not args or args[0] not in SUB:
+        sys.exit("Usage:\n  eif add account  Add an account entry to accounts.json")
     SUB[args[0]](args[1:])
 
 
@@ -1112,7 +1115,7 @@ USAGE = (
     "  eif destroy  [<provider> <matter> <env>]\n"
     "  eif rollback [<provider> <matter> <env>]\n"
     "  eif init backend [<provider> <matter> <env>]\n"
-    "  eif init account\n"
+    "  eif add account\n"
     "  eif new atom     [<name> [<provider> [<category>]]]\n"
     "  eif new molecule [<name> [<provider> [<category/atom>,...]]]\n"
     "  eif new matter   [<name> [<provider> [<molecule>,...  ]]]\n"
@@ -1133,6 +1136,7 @@ def main() -> None:
         "destroy":  cmd_destroy,
         "rollback": cmd_rollback,
         "new":      cmd_new,
+        "add":      cmd_add,
         "init":     cmd_init,
     }
 
