@@ -20,7 +20,7 @@ locals {
 
 # ── Atom: Security Group ──────────────────────────────────────────────────────
 module "sg" {
-  source = "../../atoms/security/sg"
+  source = "../../../atoms/security/sg/v1"
 
   name        = "${var.identifier}-sg"
   description = "Security group for ${var.identifier} ${var.engine} instance"
@@ -41,7 +41,7 @@ module "sg" {
 # ── Atom: RDS ─────────────────────────────────────────────────────────────────
 # depends on: module.sg.security_group_id
 module "rds" {
-  source = "../../atoms/storage/rds"
+  source = "../../../atoms/storage/rds/v1"
 
   identifier             = var.identifier
   engine                 = var.engine
