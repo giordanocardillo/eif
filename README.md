@@ -433,7 +433,7 @@ No changes to `eif.py` required.
 
 ### General contributions
 
-Atoms, molecules, and matter contributions are welcome. Please follow the existing file structure and naming conventions. Open an issue before submitting large structural changes.
+Atoms, molecules, and matter contributions belong in [eif-library](https://github.com/giordanocardillo/eif-library). Please follow the existing file structure and naming conventions. Open an issue before submitting large structural changes.
 
 ---
 
