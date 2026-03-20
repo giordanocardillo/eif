@@ -1,34 +1,27 @@
 {
   "account": "test",
-  "single-page-application": {
-    "environment": "test",
-    "bucket_name": "three-tier-app-assets-test",
-    "s3_versioning_enabled": true,
-    "cloudfront_price_class": "PriceClass_100",
-    "waf_name": "three-tier-app-waf-test",
-    "waf_managed_rule_group": "AWSManagedRulesCommonRuleSet"
-  },
-  "db": {
-    "environment": "test",
-    "identifier": "three-tier-app-db-test",
-    "db_name": "app",
-    "db_username": "admin",
-    "engine": "postgres",
-    "engine_version": "15",
-    "instance_class": "db.t3.small",
-    "multi_az": false,
-    "vpc_id": "REPLACE_WITH_TEST_VPC_ID",
-    "subnet_ids": ["REPLACE_WITH_TEST_SUBNET_ID"],
-    "allowed_cidr_blocks": ["10.0.0.0/8"]
-  },
-  "lambda-svc": {
-    "environment": "test",
-    "function_name": "three-tier-app-api-test",
-    "runtime": "python3.12",
-    "handler": "handler.lambda_handler",
-    "memory_mb": 256,
-    "timeout_s": 30,
-    "vpc_id": "REPLACE_WITH_TEST_VPC_ID",
-    "subnet_ids": ["REPLACE_WITH_TEST_SUBNET_ID"]
-  }
+
+  "bucket_name": "three-tier-app-assets-test",
+  "s3_versioning_enabled": true,
+  "cloudfront_price_class": "PriceClass_100",
+  "waf_name": "three-tier-app-waf-test",
+  "waf_managed_rule_group": "AWSManagedRulesCommonRuleSet",
+
+  "identifier": "three-tier-app-db-test",
+  "db_name": "app",
+  "db_username": "admin",
+  "engine": "postgres",
+  "engine_version": "15",
+  "instance_class": "db.t3.small",
+  "multi_az": false,
+
+  "vpc_id": "REPLACE_WITH_TEST_VPC_ID",
+  "subnet_ids": ["REPLACE_WITH_TEST_SUBNET_ID"],
+  "allowed_cidr_blocks": ["10.0.0.0/8"],
+
+  "function_name": "three-tier-app-api-test",
+  "runtime": "python3.12",
+  "handler": "handler.lambda_handler",
+  "memory_mb": 256,
+  "timeout_s": 30
 }

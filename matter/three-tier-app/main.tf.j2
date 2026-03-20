@@ -20,29 +20,50 @@ provider "aws" {
 }
 
 # ── Molecules ─────────────────────────────────────────────────────────────────
-{% for mol in molecules %}
-module "{{ mol.name }}" {
-  source = "{{ mol.source }}"
 
-{% for key, value in mol.config.items() %}
-{% if value is sameas true %}
-  {{ key }} = true
-{% elif value is sameas false %}
-  {{ key }} = false
-{% elif value is string %}
-  {{ key }} = "{{ value }}"
-{% elif value is sequence %}
-  {{ key }} = [{{ value | map('tojson') | join(', ') }}]
-{% else %}
-  {{ key }} = {{ value }}
-{% endif %}
-{% endfor %}
+module "single-page-application" {
+  source = "{{ src['single-page-application'] }}"
+
+  environment            = "{{ environment }}"
+  bucket_name            = "{{ bucket_name }}"
+  s3_versioning_enabled  = {{ s3_versioning_enabled | lower }}
+  cloudfront_price_class = "{{ cloudfront_price_class }}"
+  waf_name               = "{{ waf_name }}"
+  waf_managed_rule_group = "{{ waf_managed_rule_group }}"
 }
-{% endfor %}
+
+module "db" {
+  source = "{{ src['db'] }}"
+
+  environment         = "{{ environment }}"
+  identifier          = "{{ identifier }}"
+  db_name             = "{{ db_name }}"
+  db_username         = "{{ db_username }}"
+  engine              = "{{ engine }}"
+  engine_version      = "{{ engine_version }}"
+  instance_class      = "{{ instance_class }}"
+  multi_az            = {{ multi_az | lower }}
+  vpc_id              = "{{ vpc_id }}"
+  subnet_ids          = [{{ subnet_ids | map('tojson') | join(', ') }}]
+  allowed_cidr_blocks = [{{ allowed_cidr_blocks | map('tojson') | join(', ') }}]
+}
+
+module "lambda-svc" {
+  source = "{{ src['lambda-svc'] }}"
+
+  environment   = "{{ environment }}"
+  function_name = "{{ function_name }}"
+  runtime       = "{{ runtime }}"
+  handler       = "{{ handler }}"
+  memory_mb     = {{ memory_mb }}
+  timeout_s     = {{ timeout_s }}
+  vpc_id        = "{{ vpc_id }}"
+  subnet_ids    = [{{ subnet_ids | map('tojson') | join(', ') }}]
+}
 
 # ── Outputs ───────────────────────────────────────────────────────────────────
 {% for mol in molecules %}
-output "{{ mol.name }}_outputs" {
+output "{{ mol.name | replace('-', '_') }}_outputs" {
   description = "Outputs from the {{ mol.name }} molecule."
   value       = module.{{ mol.name }}
 }
