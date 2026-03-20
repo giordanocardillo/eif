@@ -1,25 +1,25 @@
 {
   "account": "prod",
 
-  "bucket_name": "three-tier-app-assets-prod",
+  "bucket_name": "YOUR_APP_NAME-assets-prod",
   "s3_versioning_enabled": true,
   "cloudfront_price_class": "PriceClass_100",
-  "waf_name": "three-tier-app-waf-prod",
+  "waf_name": "YOUR_APP_NAME-waf-prod",
   "waf_managed_rule_group": "AWSManagedRulesCommonRuleSet",
 
-  "identifier": "three-tier-app-db-prod",
-  "db_name": "app",
-  "db_username": "admin",
+  "identifier": "YOUR_APP_NAME-db-prod",
+  "db_name": "YOUR_DB_NAME",
+  "db_username": "YOUR_DB_USERNAME",
   "engine": "postgres",
   "engine_version": "15",
   "instance_class": "db.t3.medium",
   "multi_az": true,
 
-  "vpc_id": "REPLACE_WITH_PROD_VPC_ID",
-  "subnet_ids": ["REPLACE_WITH_PROD_SUBNET_ID_A", "REPLACE_WITH_PROD_SUBNET_ID_B"],
+  "vpc_id": "YOUR_VPC_ID",
+  "subnet_ids": ["YOUR_SUBNET_ID_A", "YOUR_SUBNET_ID_B"],
   "allowed_cidr_blocks": ["10.0.0.0/8"],
 
-  "function_name": "three-tier-app-api-prod",
+  "function_name": "YOUR_APP_NAME-api-prod",
   "runtime": "python3.12",
   "handler": "handler.lambda_handler",
   "memory_mb": 512,

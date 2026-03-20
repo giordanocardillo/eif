@@ -1,0 +1,45 @@
+{
+  "dev": {
+    "provider": "aws",
+    "aws_region": "us-east-1",
+    "profile": "YOUR_AWS_CLI_PROFILE"
+  },
+  "test": {
+    "provider": "aws",
+    "aws_region": "us-east-1",
+    "profile": "YOUR_AWS_CLI_PROFILE"
+  },
+  "prod": {
+    "provider": "aws",
+    "aws_region": "us-east-1",
+    "assume_role_arn": "arn:aws:iam::YOUR_ACCOUNT_ID:role/YOUR_ROLE_NAME"
+  },
+
+  "azure-dev": {
+    "provider": "azure",
+    "subscription_id": "YOUR_SUBSCRIPTION_ID",
+    "tenant_id": "YOUR_TENANT_ID",
+    "client_id": "YOUR_CLIENT_ID",
+    "client_secret": "YOUR_CLIENT_SECRET"
+  },
+  "azure-prod": {
+    "provider": "azure",
+    "subscription_id": "YOUR_SUBSCRIPTION_ID",
+    "tenant_id": "YOUR_TENANT_ID",
+    "client_id": "YOUR_CLIENT_ID",
+    "client_secret": "YOUR_CLIENT_SECRET"
+  },
+
+  "gcp-dev": {
+    "provider": "gcp",
+    "project": "YOUR_PROJECT_ID",
+    "region": "us-central1",
+    "credentials_file": "/path/to/your/service-account.json"
+  },
+  "gcp-prod": {
+    "provider": "gcp",
+    "project": "YOUR_PROJECT_ID",
+    "region": "us-central1",
+    "credentials_file": "/path/to/your/service-account.json"
+  }
+}
