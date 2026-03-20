@@ -17,7 +17,7 @@ I N F R A S T R U C T U R E
 
 **Build infrastructure the way nature builds matter — atom by atom.**
 
-[Philosophy](#-philosophy) · [Model](#-the-model) · [Structure](#-structure) · [Renderer](#-renderer) · [Usage](#-usage) · [Roadmap](#-roadmap)
+[Philosophy](#-philosophy) · [Model](#-the-model) · [Structure](#-structure) · [Renderer](#-renderer) · [Environments](#-environments) · [Usage](#-usage) · [Roadmap](#-roadmap)
 
 </div>
 
@@ -47,29 +47,29 @@ A single AWS service written in plain HCL. Atoms are the primitive building bloc
 ### ◈ Molecule — Level 02
 > *Internal. Not user-facing.*
 
-A combination of atoms forming a coherent architectural pattern. Molecules are standard blueprints reused across matter templates — they are composed by matter and are never deployed directly.
+A combination of atoms forming a coherent architectural pattern. Intra-molecule atom dependencies are wired explicitly via output references — each atom that depends on another consumes its output directly. Molecules are never deployed directly.
 
-| Molecule | Atoms |
-|---|---|
-| `swa` | `s3` + `cloudfront` + `waf` |
-| `db` | `rds` + `sg` |
-| `lambda-svc` | `lambda` + `sg` |
+| Molecule | Atoms | Dependency chain |
+|---|---|---|
+| `swa` | `s3` + `cloudfront` + `waf` | `cloudfront` ← `s3.domain`, `waf.arn` |
+| `db` | `rds` + `sg` | `sg` port derived from engine → `rds` ← `sg.id` |
+| `lambda-svc` | `lambda` + `sg` | `lambda` ← `sg.id` |
 
 ---
 
 ### ◆ Matter — Level 03
 > *The only user-facing level.*
 
-**Matter is the sole entry point for every deployment.** Even a deployment that uses a single molecule is expressed as a matter. Users declare their molecule stack and config in `composition.json`; the `eif` renderer produces ready-to-apply HCL via a Jinja2 template.
+**Matter is the sole entry point for every deployment.** Even a deployment using a single molecule is expressed as a matter. Each matter has one JSON composition file per environment. The `eif` renderer merges it with the account config and produces ready-to-apply HCL.
 
 ```json
 {
   "matter": "three-tier-app",
-  "aws_region": "us-east-1",
+  "account": "prod",
   "molecules": [
     {
       "name": "swa",
-      "source": "../../molecules/swa",
+      "source": "molecules/swa",
       "config": {
         "environment": "prod",
         "bucket_name": "my-app-assets-prod",
@@ -88,59 +88,90 @@ A combination of atoms forming a coherent architectural pattern. Molecules are s
 ```
 eif/
 │
-├── eif.py                          # Jinja2 → HCL renderer CLI
+├── accounts.json                   # env → AWS account config (profile / assume_role)
+├── eif.py                          # renderer CLI
 ├── pyproject.toml                  # Python project (uv / hatchling)
 │
 ├── atoms/                          # Atomic AWS services (plain HCL)
+│   ├── compute/
+│   │   └── lambda/                 # main.tf · variables.tf · outputs.tf
 │   ├── networking/
-│   │   └── cloudfront/             # main.tf · variables.tf · outputs.tf
+│   │   └── cloudfront/
 │   ├── storage/
-│   │   └── s3/
+│   │   ├── s3/
+│   │   └── rds/
 │   └── security/
-│       └── waf/
+│       ├── waf/
+│       └── sg/
 │
-├── molecules/                      # Self-contained blueprints
-│   └── swa/                        # Static Web App: s3 + cloudfront + waf
+├── molecules/                      # Architectural blueprints
+│   ├── swa/                        # s3 + cloudfront + waf
+│   ├── db/                         # rds + sg
+│   └── lambda-svc/                 # lambda + sg
 │
-└── matter/                         # Complete applications
+└── matter/                         # Deployable applications
     └── three-tier-app/
-        ├── composition.json        # user-edited config (input)
+        ├── dev.json                # environment composition (input)
+        ├── test.json
+        ├── prod.json
         ├── main.tf.j2              # Jinja2 template
-        └── main.tf                 # rendered output — do not edit by hand
+        └── .rendered/              # gitignored — render artifacts
+            ├── dev/main.tf
+            ├── test/main.tf
+            └── prod/main.tf
 ```
 
 ---
 
 ## ◐ Renderer
 
-Matter templates are rendered by `eif.py` — a thin Python CLI built on [Jinja2](https://jinja.palletsprojects.com/). Users declare their molecule stack and config in `composition.json`; the renderer produces valid HCL.
+The `eif` CLI takes a matter directory and an environment name. It:
 
-### How it works
+1. Loads `accounts.json` from the repo root
+2. Loads `<env>.json` from the matter directory
+3. Resolves molecule source paths relative to the render output directory
+4. Merges account config into the template context
+5. Renders `main.tf.j2` → `.rendered/<env>/main.tf`
 
 ```
-composition.json  ──┐
-                    ├──▶  eif render  ──▶  main.tf
-main.tf.j2        ──┘
+accounts.json  ──┐
+<env>.json     ──┼──▶  eif  ──▶  .rendered/<env>/main.tf
+main.tf.j2     ──┘
 ```
 
-### Template example
+---
 
-```jinja
-{% for mol in molecules %}
-module "{{ mol.name }}" {
-  source = "{{ mol.source }}"
+## ◎ Environments
 
-  {% for key, value in mol.config.items() %}
-  {% if value is sameas true %}
-  {{ key }} = true
-  {% elif value is string %}
-  {{ key }} = "{{ value }}"
-  {% else %}
-  {{ key }} = {{ value }}
-  {% endif %}
-  {% endfor %}
+Each environment maps to an AWS account defined in `accounts.json`:
+
+```json
+{
+  "dev":  { "aws_region": "us-east-1", "profile": "eif-dev" },
+  "test": { "aws_region": "us-east-1", "profile": "eif-test" },
+  "prod": { "aws_region": "us-east-1", "assume_role_arn": "arn:aws:iam::ACCOUNT_ID:role/EIFDeployRole" }
 }
-{% endfor %}
+```
+
+- `dev` and `test` authenticate via named AWS CLI profiles
+- `prod` deploys to a separate AWS account via role assumption
+
+The rendered provider block reflects the account config automatically:
+
+```hcl
+# dev / test
+provider "aws" {
+  region  = "us-east-1"
+  profile = "eif-dev"
+}
+
+# prod
+provider "aws" {
+  region = "us-east-1"
+  assume_role {
+    role_arn = "arn:aws:iam::ACCOUNT_ID:role/EIFDeployRole"
+  }
+}
 ```
 
 ---
@@ -151,7 +182,7 @@ module "{{ mol.name }}" {
 
 - Python `>= 3.11` with [uv](https://docs.astral.sh/uv/)
 - Terraform `>= 1.5`
-- AWS CLI configured with appropriate credentials
+- AWS CLI configured with appropriate credentials or role
 
 ### Install
 
@@ -162,15 +193,16 @@ uv sync
 ### Render and deploy
 
 ```bash
-# render composition.json → main.tf
-uv run eif matter/three-tier-app
+# render for a specific environment
+uv run eif matter/three-tier-app dev
+uv run eif matter/three-tier-app prod
 
 # deploy
-terraform -chdir=matter/three-tier-app init
-terraform -chdir=matter/three-tier-app apply
+terraform -chdir=matter/three-tier-app/.rendered/dev init
+terraform -chdir=matter/three-tier-app/.rendered/dev apply
 ```
 
-Matter is the only deployment entry point. Atoms and molecules are internal — use them as building blocks when authoring new matter templates, but never deploy them directly.
+Matter is the only deployment entry point. Atoms and molecules are internal — use them as building blocks when authoring new matter templates, never deploy them directly.
 
 ---
 
@@ -179,10 +211,12 @@ Matter is the only deployment entry point. Atoms and molecules are internal — 
 - [x] Atom library: `s3`, `cloudfront`, `waf`, `lambda`, `rds`, `sg`
 - [x] Molecule library: `swa`, `db`, `lambda-svc`
 - [x] Matter template: `three-tier-app` (`swa` + `db` + `lambda-svc`)
-- [x] Jinja2 → HCL renderer (`eif.py`)
+- [x] Jinja2 → HCL renderer (`eif`)
+- [x] Multi-environment support (`dev`, `test`, `prod`)
+- [x] Multi-account support (profile + assume_role)
 - [ ] Atom library: compute (`ecs`), networking (`api-gateway`)
 - [ ] Matter template: `serverless-api`
-- [ ] Remote state management per matter
+- [ ] Remote state management per matter/environment
 - [ ] CI/CD pipeline examples (GitHub Actions / Azure DevOps)
 - [ ] Tagging strategy module
 - [ ] Cost estimation per matter
