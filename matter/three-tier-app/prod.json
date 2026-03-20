@@ -1,34 +1,27 @@
 {
   "account": "prod",
-  "single-page-application": {
-    "environment": "prod",
-    "bucket_name": "three-tier-app-assets-prod",
-    "s3_versioning_enabled": true,
-    "cloudfront_price_class": "PriceClass_100",
-    "waf_name": "three-tier-app-waf-prod",
-    "waf_managed_rule_group": "AWSManagedRulesCommonRuleSet"
-  },
-  "db": {
-    "environment": "prod",
-    "identifier": "three-tier-app-db-prod",
-    "db_name": "app",
-    "db_username": "admin",
-    "engine": "postgres",
-    "engine_version": "15",
-    "instance_class": "db.t3.medium",
-    "multi_az": true,
-    "vpc_id": "REPLACE_WITH_PROD_VPC_ID",
-    "subnet_ids": ["REPLACE_WITH_PROD_SUBNET_ID_A", "REPLACE_WITH_PROD_SUBNET_ID_B"],
-    "allowed_cidr_blocks": ["10.0.0.0/8"]
-  },
-  "lambda-svc": {
-    "environment": "prod",
-    "function_name": "three-tier-app-api-prod",
-    "runtime": "python3.12",
-    "handler": "handler.lambda_handler",
-    "memory_mb": 512,
-    "timeout_s": 30,
-    "vpc_id": "REPLACE_WITH_PROD_VPC_ID",
-    "subnet_ids": ["REPLACE_WITH_PROD_SUBNET_ID_A", "REPLACE_WITH_PROD_SUBNET_ID_B"]
-  }
+
+  "bucket_name": "three-tier-app-assets-prod",
+  "s3_versioning_enabled": true,
+  "cloudfront_price_class": "PriceClass_100",
+  "waf_name": "three-tier-app-waf-prod",
+  "waf_managed_rule_group": "AWSManagedRulesCommonRuleSet",
+
+  "identifier": "three-tier-app-db-prod",
+  "db_name": "app",
+  "db_username": "admin",
+  "engine": "postgres",
+  "engine_version": "15",
+  "instance_class": "db.t3.medium",
+  "multi_az": true,
+
+  "vpc_id": "REPLACE_WITH_PROD_VPC_ID",
+  "subnet_ids": ["REPLACE_WITH_PROD_SUBNET_ID_A", "REPLACE_WITH_PROD_SUBNET_ID_B"],
+  "allowed_cidr_blocks": ["10.0.0.0/8"],
+
+  "function_name": "three-tier-app-api-prod",
+  "runtime": "python3.12",
+  "handler": "handler.lambda_handler",
+  "memory_mb": 512,
+  "timeout_s": 30
 }

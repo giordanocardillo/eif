@@ -47,11 +47,12 @@ def latest_version(module_path: Path) -> str | None:
     return max(versions, key=lambda v: int(v[1:]))
 
 
-def resolve_sources(molecules: list, repo_root: Path, output_dir: Path) -> None:
-    """Rewrite each molecule's source to a path relative to the output directory."""
-    for mol in molecules:
-        mol_abs = (repo_root / mol["source"]).resolve()
-        mol["source"] = os.path.relpath(mol_abs, output_dir)
+def resolve_sources(molecules: list, repo_root: Path, output_dir: Path) -> dict:
+    """Return {mol_name: relative_path} for each molecule."""
+    return {
+        mol["name"]: os.path.relpath((repo_root / mol["source"]).resolve(), output_dir)
+        for mol in molecules
+    }
 
 
 def load_inputs(matter_path: Path, env: str) -> tuple:
@@ -85,10 +86,6 @@ def load_inputs(matter_path: Path, env: str) -> tuple:
             f"Available: {list(accounts.keys())}"
         )
 
-    # Attach per-molecule config from the env file
-    for mol in composition["molecules"]:
-        mol["config"] = env_config.get(mol["name"], {})
-
     return accounts[account_key], composition, env_config, repo_root, composition_file
 
 
@@ -102,9 +99,18 @@ def cmd_render(matter_dir: str, env: str) -> None:
     output_file = output_dir / "main.tf"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    resolve_sources(composition["molecules"], repo_root, output_dir)
+    src = resolve_sources(composition["molecules"], repo_root, output_dir)
 
-    ctx = {**account_config, **composition, "environment": env, "account": env_config["account"]}
+    # Flat env vars (minus "account") + auto-injected environment + src lookup
+    env_vars = {k: v for k, v in env_config.items() if k != "account"}
+    ctx = {
+        **account_config,
+        **env_vars,
+        "environment": env,
+        "account": env_config["account"],
+        "molecules": composition["molecules"],
+        "src": src,
+    }
 
     j2_env = Environment(
         loader=FileSystemLoader(str(matter_path)),
@@ -161,7 +167,6 @@ def cmd_upgrade(matter_dir: str, env: str) -> None:
 
     # Write back only the composition file (env files are unaffected by upgrades)
     if upgraded:
-        # Strip config before writing back (config is not stored in composition.json)
         clean = {**composition, "molecules": [
             {"name": m["name"], "source": m["source"]} for m in composition["molecules"]
         ]}
