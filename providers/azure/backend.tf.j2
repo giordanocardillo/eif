@@ -1,0 +1,6 @@
+  backend "azurerm" {
+    resource_group_name  = "{{ backend.resource_group_name }}"
+    storage_account_name = "{{ backend.storage_account_name }}"
+    container_name       = "{{ backend.container_name }}"
+    key                  = "{{ backend_key }}"
+  }

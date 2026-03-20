@@ -7,6 +7,9 @@ matters/**/prod.json
 # EIF rendered outputs
 matters/**/.rendered/
 
+# EIF local deployment history (use remote backend for team sharing)
+matters/**/.history/
+
 # Terraform
 **/.terraform/
 *.tfstate

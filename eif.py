@@ -1,28 +1,43 @@
 #!/usr/bin/env python3
 """
 EIF — Elemental Infrastructure Framework
-CLI renderer, upgrade tool, and scaffolding.
+CLI renderer, upgrade tool, scaffolding, and deployment lifecycle.
 
 Commands:
-    eif render  [<provider> <matter> <env>]   Render composition + env → .rendered/<env>/main.tf
-    eif upgrade [<provider> <matter> <env>]   Bump all molecule sources to their latest version
+    eif render   [<provider> <matter> <env>]  Render composition + env → .rendered/<env>/main.tf
+    eif upgrade  [<provider> <matter> <env>]  Bump all molecule sources to their latest version
+    eif plan     [<provider> <matter> <env>]  Render and run terraform plan
+    eif apply    [<provider> <matter> <env>]  Render, run terraform apply, snapshot on success
+    eif destroy  [<provider> <matter> <env>]  Run terraform destroy on the rendered output
+    eif rollback [<provider> <matter> <env>]  Restore a previous snapshot and re-apply
+    eif init backend [<provider> <matter> <env>]  Bootstrap remote state bucket
+    eif init account                              Add an account entry to accounts.json
     eif new atom     [<name> [<provider> [<category>]]]
     eif new molecule [<name> [<provider> [<category/atom>,...  ]]]
     eif new matter   [<name> [<provider> [<molecule>,...       ]]]
 
 Examples:
     uv run eif render                                       # fully interactive
-    uv run eif render  aws three-tier-app dev               # fully non-interactive
-    uv run eif upgrade aws three-tier-app dev
+    uv run eif render   aws three-tier-app dev              # fully non-interactive
+    uv run eif upgrade  aws three-tier-app dev
+    uv run eif plan     aws three-tier-app dev
+    uv run eif apply    aws three-tier-app dev
+    uv run eif destroy  aws three-tier-app dev
+    uv run eif rollback aws three-tier-app dev
+    uv run eif init backend aws three-tier-app dev
+    uv run eif init account
     uv run eif new atom
     uv run eif new atom     my-resource aws networking
     uv run eif new molecule my-service  aws storage/s3,networking/cloudfront
     uv run eif new matter   my-app      aws single-page-application,db
 """
 
+import datetime
 import json
 import os
 import re
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -71,7 +86,7 @@ _PROVIDER_TF: dict[str, str] = {
 }
 
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+# ── Core helpers ──────────────────────────────────────────────────────────────
 
 def find_repo_root(start: Path) -> Path:
     """Walk up from start until we find accounts.json."""
@@ -295,9 +310,32 @@ def _write(path: Path, content: str, cwd: Path) -> None:
     print(f"[eif] created   {path.relative_to(cwd)}")
 
 
-# ── Commands (render / upgrade) ───────────────────────────────────────────────
+# ── Render helpers ─────────────────────────────────────────────────────────────
 
-def render_provider_block(account_config: dict, repo_root: Path) -> str:
+def render_backend_block(account_config: dict, matter_name: str, env: str, repo_root: Path) -> str:
+    """Render providers/<cloud>/backend.tf.j2 if a backend is configured, else ''."""
+    backend = account_config.get("backend")
+    if not backend:
+        return ""
+    provider = account_config["provider"]
+    backend_template = repo_root / "providers" / provider / "backend.tf.j2"
+    if not backend_template.exists():
+        return ""
+    j2_env = Environment(
+        loader=FileSystemLoader(str(backend_template.parent)),
+        undefined=StrictUndefined,
+        trim_blocks=True,
+        lstrip_blocks=True,
+    )
+    ctx = {
+        **account_config,
+        "backend_key":    f"eif/{matter_name}/{env}/terraform.tfstate",
+        "backend_prefix": f"eif/{matter_name}/{env}",
+    }
+    return j2_env.get_template("backend.tf.j2").render(**ctx)
+
+
+def render_provider_block(account_config: dict, repo_root: Path, backend_block: str = "") -> str:
     """Render providers/<cloud>/provider.tf.j2 with the account config."""
     provider = account_config.get("provider")
     if not provider:
@@ -311,30 +349,36 @@ def render_provider_block(account_config: dict, repo_root: Path) -> str:
         trim_blocks=True,
         lstrip_blocks=True,
     )
-    return j2_env.get_template("provider.tf.j2").render(**account_config)
+    ctx = {**account_config, "backend_block": backend_block}
+    return j2_env.get_template("provider.tf.j2").render(**ctx)
 
 
-def cmd_render(args: list[str]) -> None:
-    matter_path, env = _resolve_matter_and_env(args)
+def _do_render(matter_path: Path, env: str) -> tuple[Path, dict, dict, dict, Path]:
+    """
+    Render main.tf into .rendered/<env>/main.tf.
+    Returns (output_dir, account_config, composition, env_config, repo_root).
+    """
     account_config, composition, env_config, repo_root, _ = load_inputs(matter_path, env)
 
+    matter_name = matter_path.parent.name
     output_dir  = matter_path / ".rendered" / env
     output_file = output_dir / "main.tf"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    src = resolve_sources(composition["molecules"], repo_root, output_dir)
-    provider_block = render_provider_block(account_config, repo_root)
+    src           = resolve_sources(composition["molecules"], repo_root, output_dir)
+    backend_block = render_backend_block(account_config, matter_name, env, repo_root)
+    provider_block = render_provider_block(account_config, repo_root, backend_block)
 
-    # Flat env vars (minus "account") + auto-injected environment + src lookup
     env_vars = {k: v for k, v in env_config.items() if k != "account"}
     ctx = {
         **account_config,
         **env_vars,
-        "environment": env,
-        "account": env_config["account"],
-        "molecules": composition["molecules"],
-        "src": src,
+        "environment":    env,
+        "account":        env_config["account"],
+        "molecules":      composition["molecules"],
+        "src":            src,
         "provider_block": provider_block,
+        "backend_block":  backend_block,
     }
 
     j2_env = Environment(
@@ -356,8 +400,126 @@ def cmd_render(args: list[str]) -> None:
         "\n"
     )
     output_file.write_text(header + rendered)
-
     print(f"[eif] rendered  → {output_file}")
+
+    return output_dir, account_config, composition, env_config, repo_root
+
+
+# ── Snapshot helpers ───────────────────────────────────────────────────────────
+
+def _snapshot_timestamp() -> str:
+    return datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+
+def _local_history_dir(matter_path: Path, env: str) -> Path:
+    return matter_path / ".history" / env
+
+
+def _take_snapshot(output_dir: Path, matter_path: Path, matter_name: str,
+                   env: str, account_config: dict) -> str:
+    """
+    Save a snapshot of .rendered/<env>/main.tf locally and (if backend configured) remotely.
+    Returns the timestamp string.
+    """
+    ts      = _snapshot_timestamp()
+    main_tf = output_dir / "main.tf"
+
+    # Local snapshot — always
+    local_dir = _local_history_dir(matter_path, env) / ts
+    local_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(main_tf, local_dir / "main.tf")
+    meta = {"timestamp": ts, "matter": matter_name, "env": env}
+    (local_dir / "meta.json").write_text(json.dumps(meta, indent=2) + "\n")
+    print(f"[eif] snapshot  → .history/{env}/{ts}/main.tf")
+
+    # Remote snapshot — if backend configured
+    backend = account_config.get("backend")
+    if backend:
+        provider       = account_config["provider"]
+        remote_prefix  = f"eif/{matter_name}/{env}/history/{ts}"
+        try:
+            _upload_snapshot(provider, backend, account_config, remote_prefix, local_dir)
+            print(f"[eif] uploaded  → remote:{remote_prefix}/")
+        except Exception as exc:
+            print(f"[eif] WARNING: remote snapshot upload failed — {exc}")
+
+    return ts
+
+
+def _upload_snapshot(provider: str, backend: dict, account_config: dict,
+                     remote_prefix: str, local_dir: Path) -> None:
+    if provider == "aws":
+        bucket = backend["bucket"]
+        region = backend.get("region", account_config.get("aws_region", "us-east-1"))
+        for fname in ("main.tf", "meta.json"):
+            subprocess.run([
+                "aws", "s3", "cp",
+                str(local_dir / fname),
+                f"s3://{bucket}/{remote_prefix}/{fname}",
+                "--region", region,
+            ], check=True, capture_output=True)
+    elif provider == "azure":
+        for fname in ("main.tf", "meta.json"):
+            subprocess.run([
+                "az", "storage", "blob", "upload",
+                "--account-name", backend["storage_account_name"],
+                "--container-name", backend["container_name"],
+                "--name", f"{remote_prefix}/{fname}",
+                "--file", str(local_dir / fname),
+                "--overwrite",
+            ], check=True, capture_output=True)
+    elif provider == "gcp":
+        bucket = backend["bucket"]
+        for fname in ("main.tf", "meta.json"):
+            subprocess.run([
+                "gsutil", "cp",
+                str(local_dir / fname),
+                f"gs://{bucket}/{remote_prefix}/{fname}",
+            ], check=True, capture_output=True)
+
+
+def _list_snapshots(matter_path: Path, env: str) -> list[dict]:
+    """List local snapshots sorted newest-first."""
+    hist = _local_history_dir(matter_path, env)
+    if not hist.is_dir():
+        return []
+    snapshots = []
+    for ts_dir in sorted(hist.iterdir(), reverse=True):
+        if not ts_dir.is_dir():
+            continue
+        meta_file = ts_dir / "meta.json"
+        if not meta_file.exists():
+            continue
+        with meta_file.open() as fh:
+            meta = json.load(fh)
+        meta["_local_dir"] = str(ts_dir)
+        snapshots.append(meta)
+    return snapshots
+
+
+def _restore_snapshot(snapshot: dict, output_dir: Path) -> None:
+    src = Path(snapshot["_local_dir"]) / "main.tf"
+    if not src.exists():
+        sys.exit(f"[eif] ERROR: snapshot main.tf not found at {src}")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(src, output_dir / "main.tf")
+    print(f"[eif] restored  → {output_dir}/main.tf  (snapshot {snapshot['timestamp']})")
+
+
+# ── Terraform runner ───────────────────────────────────────────────────────────
+
+def _tf(cmd: list[str], output_dir: Path) -> int:
+    """Run a terraform subcommand in output_dir, streaming output."""
+    full_cmd = ["terraform", f"-chdir={output_dir}"] + cmd
+    print(f"[eif] running   {' '.join(full_cmd)}")
+    return subprocess.run(full_cmd).returncode
+
+
+# ── Commands (render / upgrade) ───────────────────────────────────────────────
+
+def cmd_render(args: list[str]) -> None:
+    matter_path, env = _resolve_matter_and_env(args)
+    output_dir, _, _, _, _ = _do_render(matter_path, env)
     print(f"[eif] deploy    → terraform -chdir={output_dir} init")
     print(f"[eif]             terraform -chdir={output_dir} apply")
 
@@ -400,13 +562,261 @@ def cmd_upgrade(args: list[str]) -> None:
         print("[eif] nothing to upgrade")
 
 
+# ── Commands (plan / apply / destroy / rollback) ───────────────────────────────
+
+def cmd_plan(args: list[str]) -> None:
+    matter_path, env = _resolve_matter_and_env(args)
+    output_dir, _, _, _, _ = _do_render(matter_path, env)
+    rc = _tf(["init", "-input=false"], output_dir)
+    if rc != 0:
+        sys.exit(rc)
+    sys.exit(_tf(["plan", "-input=false"], output_dir))
+
+
+def cmd_apply(args: list[str]) -> None:
+    matter_path, env = _resolve_matter_and_env(args)
+    output_dir, account_config, _, _, _ = _do_render(matter_path, env)
+    matter_name = matter_path.parent.name
+
+    rc = _tf(["init", "-input=false"], output_dir)
+    if rc != 0:
+        sys.exit(rc)
+
+    rc = _tf(["apply", "-input=false"], output_dir)
+    if rc != 0:
+        sys.exit(rc)
+
+    _take_snapshot(output_dir, matter_path, matter_name, env, account_config)
+
+
+def cmd_destroy(args: list[str]) -> None:
+    matter_path, env = _resolve_matter_and_env(args)
+    output_dir = matter_path / ".rendered" / env
+    if not (output_dir / "main.tf").exists():
+        sys.exit(
+            f"[eif] ERROR: no rendered config at {output_dir} — run 'eif render' first"
+        )
+    sys.exit(_tf(["destroy", "-input=false"], output_dir))
+
+
+def cmd_rollback(args: list[str]) -> None:
+    matter_path, env = _resolve_matter_and_env(args)
+    output_dir = matter_path / ".rendered" / env
+
+    snapshots = _list_snapshots(matter_path, env)
+    if not snapshots:
+        sys.exit(
+            f"[eif] ERROR: no snapshots found in .history/{env}/\n"
+            "       Run 'eif apply' at least once to create a snapshot."
+        )
+
+    choices   = [s["timestamp"] for s in snapshots]
+    chosen_ts = _choose("snapshot to restore", choices)
+    snapshot  = next(s for s in snapshots if s["timestamp"] == chosen_ts)
+
+    _restore_snapshot(snapshot, output_dir)
+
+    if not _confirm("run terraform apply with restored config?", default=True):
+        print("[eif] restored main.tf — run 'terraform apply' manually when ready")
+        return
+
+    rc = _tf(["init", "-input=false"], output_dir)
+    if rc != 0:
+        sys.exit(rc)
+    sys.exit(_tf(["apply", "-input=false"], output_dir))
+
+
+# ── Commands (init) ────────────────────────────────────────────────────────────
+
+def cmd_init_backend(args: list[str]) -> None:
+    matter_path, env = _resolve_matter_and_env(args)
+    account_config, _, _, _, _ = load_inputs(matter_path, env)
+
+    backend = account_config.get("backend")
+    if not backend:
+        sys.exit(
+            "[eif] ERROR: no 'backend' key in accounts.json for this account.\n"
+            "       Add a 'backend' object — see accounts.example.json."
+        )
+
+    provider = account_config["provider"]
+    print(f"[eif] bootstrapping {provider} remote backend...")
+
+    if provider == "aws":
+        _init_backend_aws(backend, account_config)
+    elif provider == "azure":
+        _init_backend_azure(backend, account_config)
+    elif provider == "gcp":
+        _init_backend_gcp(backend, account_config)
+    else:
+        sys.exit(f"[eif] ERROR: no backend bootstrap support for provider '{provider}'")
+
+    print("[eif] backend ready — run 'eif apply' to deploy")
+
+
+def _init_backend_aws(backend: dict, account_config: dict) -> None:
+    bucket = backend["bucket"]
+    region = backend.get("region", account_config.get("aws_region", "us-east-1"))
+    dynamo = backend.get("dynamodb_table")
+
+    create_args = ["aws", "s3api", "create-bucket", "--bucket", bucket, "--region", region]
+    if region != "us-east-1":
+        create_args += ["--create-bucket-configuration", f"LocationConstraint={region}"]
+    subprocess.run(create_args, check=True)
+
+    subprocess.run([
+        "aws", "s3api", "put-bucket-versioning",
+        "--bucket", bucket,
+        "--versioning-configuration", "Status=Enabled",
+    ], check=True)
+
+    subprocess.run([
+        "aws", "s3api", "put-public-access-block",
+        "--bucket", bucket,
+        "--public-access-block-configuration",
+        "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true",
+    ], check=True)
+
+    print(f"[eif] S3 bucket '{bucket}' created with versioning enabled")
+
+    if dynamo:
+        subprocess.run([
+            "aws", "dynamodb", "create-table",
+            "--table-name", dynamo,
+            "--attribute-definitions", "AttributeName=LockID,AttributeType=S",
+            "--key-schema", "AttributeName=LockID,KeyType=HASH",
+            "--billing-mode", "PAY_PER_REQUEST",
+            "--region", region,
+        ], check=True)
+        print(f"[eif] DynamoDB table '{dynamo}' created for state locking")
+
+
+def _init_backend_azure(backend: dict, account_config: dict) -> None:
+    rg        = backend["resource_group_name"]
+    storage   = backend["storage_account_name"]
+    container = backend["container_name"]
+    location  = backend.get("location", "eastus")
+
+    subprocess.run(["az", "group", "create", "--name", rg, "--location", location], check=True)
+    subprocess.run([
+        "az", "storage", "account", "create",
+        "--name", storage, "--resource-group", rg,
+        "--sku", "Standard_LRS", "--kind", "StorageV2",
+    ], check=True)
+    subprocess.run([
+        "az", "storage", "container", "create",
+        "--name", container, "--account-name", storage,
+    ], check=True)
+    subprocess.run([
+        "az", "storage", "account", "blob-service-properties", "update",
+        "--account-name", storage, "--resource-group", rg,
+        "--enable-versioning", "true",
+    ], check=True)
+    print(f"[eif] Azure storage '{storage}' / container '{container}' ready")
+
+
+def _init_backend_gcp(backend: dict, account_config: dict) -> None:
+    bucket  = backend["bucket"]
+    project = account_config.get("project")
+    region  = account_config.get("region", "us-central1")
+
+    mb_args = ["gsutil", "mb"]
+    if project:
+        mb_args += ["-p", project]
+    mb_args += ["-l", region, f"gs://{bucket}"]
+    subprocess.run(mb_args, check=True)
+
+    subprocess.run(["gsutil", "versioning", "set", "on", f"gs://{bucket}"], check=True)
+    print(f"[eif] GCS bucket 'gs://{bucket}' created with versioning enabled")
+
+
+def cmd_init_account(args: list[str]) -> None:  # noqa: ARG001
+    repo_root     = find_repo_root(Path.cwd())
+    accounts_file = repo_root / "accounts.json"
+
+    with accounts_file.open() as fh:
+        accounts = json.load(fh)
+
+    providers = _detect_providers(repo_root)
+    provider  = _choose("provider", providers)
+    env_name  = _ask("account key (e.g. dev, prod, azure-dev)")
+
+    if env_name in accounts:
+        sys.exit(f"[eif] ERROR: account '{env_name}' already exists in accounts.json")
+
+    entry: dict = {"provider": provider}
+
+    if provider == "aws":
+        entry["aws_region"] = _ask("aws_region", "us-east-1")
+        auth = _choose("auth method", ["profile", "assume_role"])
+        if auth == "profile":
+            entry["profile"] = _ask("profile name")
+        else:
+            entry["assume_role_arn"] = _ask("assume_role_arn")
+    elif provider == "azure":
+        entry["subscription_id"] = _ask("subscription_id")
+        entry["tenant_id"]       = _ask("tenant_id")
+        if _confirm("use service principal?"):
+            entry["client_id"]     = _ask("client_id")
+            entry["client_secret"] = _ask("client_secret")
+    elif provider == "gcp":
+        entry["project"] = _ask("project")
+        entry["region"]  = _ask("region", "us-central1")
+        if _confirm("use credentials file?"):
+            entry["credentials_file"] = _ask("credentials_file path")
+
+    if _confirm("configure remote backend?"):
+        backend: dict = {}
+        if provider == "aws":
+            backend["bucket"]         = _ask("S3 bucket name")
+            backend["region"]         = entry.get("aws_region", "us-east-1")
+            backend["dynamodb_table"] = _ask("DynamoDB table name (for locking)")
+        elif provider == "azure":
+            backend["resource_group_name"]  = _ask("resource_group_name")
+            backend["storage_account_name"] = _ask("storage_account_name")
+            backend["container_name"]       = _ask("container_name")
+            backend["location"]             = _ask("location", "eastus")
+        elif provider == "gcp":
+            backend["bucket"] = _ask("GCS bucket name")
+        if backend:
+            entry["backend"] = backend
+
+    accounts[env_name] = entry
+    with accounts_file.open("w") as fh:
+        json.dump(accounts, fh, indent=2)
+        fh.write("\n")
+    print(f"[eif] added     accounts.json → '{env_name}'")
+
+    if entry.get("backend") and _confirm("bootstrap backend now?"):
+        if provider == "aws":
+            _init_backend_aws(entry["backend"], entry)
+        elif provider == "azure":
+            _init_backend_azure(entry["backend"], entry)
+        elif provider == "gcp":
+            _init_backend_gcp(entry["backend"], entry)
+
+
+def cmd_init(args: list[str]) -> None:
+    SUB = {
+        "backend": cmd_init_backend,
+        "account": cmd_init_account,
+    }
+    if not args or args[0] not in SUB:
+        sys.exit(
+            "Usage:\n"
+            "  eif init backend [<provider> <matter> <env>]  Bootstrap remote state bucket\n"
+            "  eif init account                              Add an account to accounts.json"
+        )
+    SUB[args[0]](args[1:])
+
+
 # ── Commands (new) ────────────────────────────────────────────────────────────
 
 def cmd_new_atom(args: list[str]) -> None:
     repo_root = find_repo_root(Path.cwd())
     cwd = Path.cwd()
 
-    name     = args[0] if len(args) > 0 else _ask("name")
+    name      = args[0] if len(args) > 0 else _ask("name")
     providers = _detect_providers(repo_root)
     if not providers:
         sys.exit("[eif] ERROR: no providers found in providers/")
@@ -482,7 +892,7 @@ def cmd_new_molecule(args: list[str]) -> None:
     repo_root = find_repo_root(Path.cwd())
     cwd = Path.cwd()
 
-    name = args[0] if len(args) > 0 else _ask("name")
+    name      = args[0] if len(args) > 0 else _ask("name")
     providers = _detect_providers(repo_root)
     if not providers:
         sys.exit("[eif] ERROR: no providers found in providers/")
@@ -494,7 +904,7 @@ def cmd_new_molecule(args: list[str]) -> None:
     else:
         provider = _choose("provider", providers)
 
-    mol_dir = repo_root / "molecules" / provider / name
+    mol_dir  = repo_root / "molecules" / provider / name
     existing = latest_version(mol_dir)
     non_interactive = len(args) >= 3
 
@@ -565,7 +975,6 @@ def cmd_new_molecule(args: list[str]) -> None:
         "# TODO: add variables\n"
     ), cwd)
 
-    # outputs.tf — one commented stub per selected atom
     if selected_atoms:
         outputs_tf = "# TODO: expose atom outputs\n"
         for atom in selected_atoms:
@@ -592,7 +1001,7 @@ def cmd_new_matter(args: list[str]) -> None:
     repo_root = find_repo_root(Path.cwd())
     cwd = Path.cwd()
 
-    name = args[0] if len(args) > 0 else _ask("name")
+    name      = args[0] if len(args) > 0 else _ask("name")
     providers = _detect_providers(repo_root)
     if not providers:
         sys.exit("[eif] ERROR: no providers found in providers/")
@@ -673,7 +1082,7 @@ def cmd_new_matter(args: list[str]) -> None:
     print(f"[eif] next steps:")
     print(f"[eif]   1. cp {(out / 'dev.example.json').relative_to(cwd)} {(out / 'dev.json').relative_to(cwd)}")
     print(f"[eif]   2. wire variables in {(out / 'main.tf.j2').relative_to(cwd)}")
-    print(f"[eif]   3. uv run eif render {render_path} dev")
+    print(f"[eif]   3. uv run eif apply {render_path} dev")
 
 
 def cmd_new(args: list[str]) -> None:
@@ -696,12 +1105,18 @@ def cmd_new(args: list[str]) -> None:
 
 USAGE = (
     "Usage:\n"
-    "  eif render  [<provider> <matter> <env>]\n"
-    "  eif upgrade [<provider> <matter> <env>]\n"
+    "  eif render   [<provider> <matter> <env>]\n"
+    "  eif upgrade  [<provider> <matter> <env>]\n"
+    "  eif plan     [<provider> <matter> <env>]\n"
+    "  eif apply    [<provider> <matter> <env>]\n"
+    "  eif destroy  [<provider> <matter> <env>]\n"
+    "  eif rollback [<provider> <matter> <env>]\n"
+    "  eif init backend [<provider> <matter> <env>]\n"
+    "  eif init account\n"
     "  eif new atom     [<name> [<provider> [<category>]]]\n"
     "  eif new molecule [<name> [<provider> [<category/atom>,...]]]\n"
     "  eif new matter   [<name> [<provider> [<molecule>,...  ]]]\n"
-    "  (all args optional — missing ones are prompted interactively)"
+    "  (all positional args optional — missing ones are prompted interactively)"
 )
 
 def main() -> None:
@@ -710,13 +1125,21 @@ def main() -> None:
         sys.exit(USAGE)
 
     cmd = args[0]
+    CMDS = {
+        "render":   cmd_render,
+        "upgrade":  cmd_upgrade,
+        "plan":     cmd_plan,
+        "apply":    cmd_apply,
+        "destroy":  cmd_destroy,
+        "rollback": cmd_rollback,
+        "new":      cmd_new,
+        "init":     cmd_init,
+    }
 
-    if cmd == "new":
-        cmd_new(args[1:])
-    elif cmd in ("render", "upgrade"):
-        {"render": cmd_render, "upgrade": cmd_upgrade}[cmd](args[1:])
-    else:
+    if cmd not in CMDS:
         sys.exit(USAGE)
+
+    CMDS[cmd](args[1:])
 
 
 if __name__ == "__main__":
