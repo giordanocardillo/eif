@@ -584,6 +584,7 @@
     <li><a href="#state">State</a></li>
     <li><a href="#structure">Structure</a></li>
     <li><a href="https://github.com/giordanocardillo/eif" target="_blank" style="color:var(--accent)">GitHub ↗</a></li>
+    <li><a href="https://github.com/giordanocardillo/eif-library" target="_blank" style="color:var(--text-muted)">Library ↗</a></li>
   </ul>
 </nav>
 
@@ -612,9 +613,10 @@
   <h1><span class="accent-e">E</span>lemental <span class="accent-i">I</span>nfrastructure <span class="accent-f">F</span>ramework</h1>
   <p class="hero-subtitle">Build infrastructure the way nature builds matter</p>
   <p class="hero-desc">
-    EIF is a provider-agnostic Terraform library that models infrastructure with the elegance of chemistry.
+    EIF is a provider-agnostic Terraform framework that models infrastructure with the elegance of chemistry.
     Compose <strong style="color:var(--atom)">atoms</strong> into <strong style="color:var(--molecule)">molecules</strong>,
-    molecules into <strong style="color:var(--matter)">matter</strong> — on any cloud provider.
+    molecules into <strong style="color:var(--matter)">matter</strong> — on any cloud.
+    The CLI lives here; the component library lives in <a href="https://github.com/giordanocardillo/eif-library" target="_blank" style="color:var(--accent);text-decoration:none">eif-library ↗</a>.
   </p>
   <div class="hero-cta">
     <a href="#hierarchy" class="btn btn-primary">Explore the Model</a>
@@ -893,17 +895,36 @@
   <p class="section-label reveal">Repository layout</p>
   <h2 class="section-title reveal">Project structure</h2>
   <p class="section-body reveal">
-    The repository is organized to faithfully mirror the model hierarchy.
+    This repo is the <strong>CLI tool only</strong>. The component library — atoms, molecules, and matters — lives in
+    <a href="https://github.com/giordanocardillo/eif-library" target="_blank" style="color:var(--accent)">eif-library ↗</a>.
     Each directory is self-contained and follows a consistent naming convention.
   </p>
 
   <div class="file-tree reveal">
 <pre>
-<span class="ft-dir">eif/</span>
+<span class="ft-dir">eif/</span>                            <span class="ft-comment"># this repo — CLI tool only</span>
+<span class="ft-comment">│</span>
+<span class="ft-file">├── eif.py</span>                     <span class="ft-comment"># renderer, lifecycle, scaffold CLI</span>
+<span class="ft-file">├── pyproject.toml</span>              <span class="ft-comment"># Python project (uv / hatchling)</span>
+<span class="ft-comment">│</span>
+<span class="ft-file">└── examples/</span>                   <span class="ft-comment"># Reference implementation</span>
+<span class="ft-file">    ├── accounts.example.json</span>
+<span class="ft-file">    ├── providers/</span>              <span class="ft-comment"># aws · azure · gcp</span>
+<span class="ft-atom">    ├── atoms/</span>
+<span class="ft-molecule">    ├── molecules/</span>
+<span class="ft-matter">    └── matters/</span>
+</pre>
+  </div>
+
+  <p class="section-body reveal" style="margin-top:2rem">
+    Your library repo follows the full component structure:
+  </p>
+
+  <div class="file-tree reveal">
+<pre>
+<span class="ft-dir">eif-library/</span>                    <span class="ft-comment"># <a href="https://github.com/giordanocardillo/eif-library" target="_blank" style="color:var(--accent)">github.com/giordanocardillo/eif-library</a></span>
 <span class="ft-comment">│</span>
 <span class="ft-file">├── accounts.json</span>              <span class="ft-comment"># env → cloud account config</span>
-<span class="ft-file">├── eif.py</span>                     <span class="ft-comment"># renderer, lifecycle (plan/apply/destroy/rollback), scaffold CLI</span>
-<span class="ft-file">├── pyproject.toml</span>              <span class="ft-comment"># Python project (uv / hatchling)</span>
 <span class="ft-comment">│</span>
 <span class="ft-file">├── providers/</span>                  <span class="ft-comment"># Pluggable cloud provider templates</span>
 <span class="ft-file">│   ├── aws/provider.tf.j2 · backend.tf.j2</span>
@@ -911,39 +932,16 @@
 <span class="ft-file">│   └── gcp/provider.tf.j2 · backend.tf.j2</span>
 <span class="ft-comment">│</span>
 <span class="ft-atom">├── atoms/</span>                     <span class="ft-comment"># Atomic cloud services — namespaced + versioned</span>
-<span class="ft-file">│   ├── aws/</span>
-<span class="ft-atom">│   │   ├── compute/lambda/v1/</span>
-<span class="ft-atom">│   │   ├── networking/cloudfront/v1/</span>
-<span class="ft-atom">│   │   ├── storage/s3/v1/ · storage/rds/v1/</span>
-<span class="ft-atom">│   │   └── security/waf/v1/ · security/sg/v1/</span>
-<span class="ft-file">│   ├── azure/</span>
-<span class="ft-atom">│   │   ├── storage/blob/v1/</span>
-<span class="ft-atom">│   │   └── networking/frontdoor/v1/</span>
-<span class="ft-file">│   └── gcp/</span>
-<span class="ft-atom">│       ├── storage/gcs/v1/</span>
-<span class="ft-atom">│       ├── networking/cdn/v1/</span>
-<span class="ft-atom">│       └── security/armor/v1/</span>
+<span class="ft-atom">│   └── &lt;cloud&gt;/&lt;category&gt;/&lt;name&gt;/v1/</span>   <span class="ft-comment"># main.tf · variables.tf · outputs.tf</span>
 <span class="ft-comment">│</span>
 <span class="ft-molecule">├── molecules/</span>                  <span class="ft-comment"># Blueprints — namespaced + versioned</span>
-<span class="ft-file">│   ├── aws/</span>
-<span class="ft-molecule">│   │   ├── single-page-application/v1/</span>  <span class="ft-comment"># s3 + cloudfront + waf</span>
-<span class="ft-molecule">│   │   ├── db/v1/</span>             <span class="ft-comment"># rds + sg</span>
-<span class="ft-molecule">│   │   └── lambda-svc/v1/</span>    <span class="ft-comment"># lambda + sg</span>
-<span class="ft-file">│   ├── azure/</span>
-<span class="ft-molecule">│   │   └── single-page-application/v1/</span>  <span class="ft-comment"># blob + frontdoor</span>
-<span class="ft-file">│   └── gcp/</span>
-<span class="ft-molecule">│       └── single-page-application/v1/</span>  <span class="ft-comment"># gcs + cdn + armor</span>
+<span class="ft-molecule">│   └── &lt;cloud&gt;/&lt;name&gt;/v1/</span>
 <span class="ft-comment">│</span>
 <span class="ft-matter">└── matters/</span>                    <span class="ft-comment"># Deployable applications</span>
-<span class="ft-file">    ├── three-tier-app/</span>
-<span class="ft-matter">    │   └── aws/</span>
-<span class="ft-file">    │       ├── composition.json</span>   <span class="ft-comment"># molecule list + pinned versions</span>
-<span class="ft-file">    │       ├── dev.json · test.json · prod.json</span>
-<span class="ft-file">    │       ├── main.tf.j2</span>
-<span class="ft-file">    │       ├── .rendered/dev/     </span> <span class="ft-comment"># gitignored — terraform output</span>
-<span class="ft-file">    │       └── .history/dev/      </span> <span class="ft-comment"># gitignored — apply snapshots</span>
-<span class="ft-file">    └── single-page-application/</span>
-<span class="ft-matter">        ├── aws/  ├── azure/  └── gcp/</span>
+<span class="ft-matter">    └── &lt;name&gt;/&lt;cloud&gt;/</span>
+<span class="ft-file">        ├── composition.json</span>   <span class="ft-comment"># molecule list + pinned versions</span>
+<span class="ft-file">        ├── &lt;env&gt;.json</span>         <span class="ft-comment"># flat variable pool per environment</span>
+<span class="ft-file">        └── main.tf.j2</span>         <span class="ft-comment"># wiring template</span>
 </pre>
   </div>
 </section>
@@ -951,8 +949,12 @@
 <!-- GITHUB CTA -->
 <div class="github-cta">
   <h2 class="reveal">Open source. <span style="color:var(--accent)">Build with it.</span></h2>
-  <p class="reveal">Star the repo, open an issue, or contribute atoms and molecules.</p>
+  <p class="reveal">Star the repos, open an issue, or contribute atoms and molecules to eif-library.</p>
   <div class="github-links reveal">
+    <a href="https://github.com/giordanocardillo/eif-library" target="_blank" class="gh-btn gh-btn-primary">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+      eif-library
+    </a>
     <a href="https://github.com/giordanocardillo/eif" target="_blank" class="gh-btn gh-btn-primary">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
       View on GitHub
