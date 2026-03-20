@@ -1,0 +1,14 @@
+{
+  "dev": {
+    "aws_region": "us-east-1",
+    "profile": "eif-dev"
+  },
+  "test": {
+    "aws_region": "us-east-1",
+    "profile": "eif-test"
+  },
+  "prod": {
+    "aws_region": "us-east-1",
+    "assume_role_arn": "arn:aws:iam::REPLACE_WITH_PROD_ACCOUNT_ID:role/EIFDeployRole"
+  }
+}
