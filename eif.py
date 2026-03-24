@@ -2625,10 +2625,25 @@ def cmd_version(_args: list[str]) -> None:
 
 def cmd_list(args: list[str]) -> None:
     SUBS = ("providers", "atoms", "molecules", "matters")
-    if not args or args[0] not in SUBS:
-        sys.exit("Usage:\n  eif list providers|atoms|molecules|matters  [<provider>]")
-
     repo_root = find_repo_root(Path.cwd())
+
+    # bare `eif list` — print everything
+    if not args or args[0] not in SUBS:
+        b = lambda s: f"\033[1m{s}\033[0m"
+        d = lambda s: f"\033[2m{s}\033[0m"
+        print(b("PROVIDERS"))
+        cmd_list(["providers"])
+        print()
+        print(b("ATOMS"))
+        cmd_list(["atoms"])
+        print()
+        print(b("MOLECULES"))
+        cmd_list(["molecules"])
+        print()
+        print(b("MATTERS"))
+        cmd_list(["matters"])
+        return
+
     sub       = args[0]
     provider_filter = args[1] if len(args) > 1 else None
 
@@ -2706,7 +2721,7 @@ def _usage() -> str:
         row("init",    "[<folder>]",                    "scaffold new project (providers, accounts, .gitignore)"),
         row("init",    "backend [<pvd> <matter> <env>]","bootstrap remote state bucket"),
         row("add",     "account",                       "add an account entry to accounts.json"),
-        row("list",    "providers|atoms|molecules|matters [<pvd>]", "list local components"),
+        row("list",    "[providers|atoms|molecules|matters] [<pvd>]", "list local components (all if no subcommand)"),
         row("version", "",                              "print eif version"),
         "",
         b("  AUTHORING"),
