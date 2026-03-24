@@ -204,15 +204,18 @@ def find_repo_root(start: Path) -> Path:
     sys.exit("❌  ERROR: no eif project found — run 'eif init' to scaffold a new project")
 
 
+_DEFAULT_REGISTRY = "https://github.com/giordanocardillo/eif-library"
+
 def load_config(repo_root: Path) -> dict:
-    """Load eif.particles.json from repo_root, defaulting to local registry."""
+    """Load eif.particles.json, falling back to the default registry if not set."""
+    defaults = {"registry": _DEFAULT_REGISTRY}
     cfg_file = repo_root / "eif.particles.json"
     if cfg_file.exists():
         try:
-            return json.loads(cfg_file.read_text())
+            return {**defaults, **json.loads(cfg_file.read_text())}
         except json.JSONDecodeError as e:
             sys.exit(f"❌  ERROR: eif.particles.json is invalid JSON — {e}")
-    return {"registry": "https://github.com/giordanocardillo/eif-library"}
+    return defaults
 
 
 def latest_version(module_path: Path) -> str | None:
@@ -1837,7 +1840,7 @@ def cmd_init_project(args: list[str]) -> None:
 
     # eif.particles.json
     particles_file = cwd / "eif.particles.json"
-    particles_file.write_text(json.dumps({"registry": "https://github.com/giordanocardillo/eif-library"}, indent=2) + "\n")
+    particles_file.write_text(json.dumps({"name": cwd.name}, indent=2) + "\n")
     print(f"{_em('✨')}created   {_arr()} {_c('eif.particles.json', 'cyan')}")
 
     # .gitignore
@@ -2547,7 +2550,7 @@ def cmd_particle_init(args: list[str]) -> None:  # noqa: ARG001
         print(f"{_em('ℹ️')} {_c('eif.particles.json already exists', 'dim')}")
         print(cfg_file.read_text())
         return
-    cfg_file.write_text(json.dumps({"registry": "https://github.com/giordanocardillo/eif-library"}, indent=2) + "\n")
+    cfg_file.write_text(json.dumps({"name": repo_root.name}, indent=2) + "\n")
     print(f"{_em('✅')}created   {_arr()} {_c(str(cfg_file), 'cyan')}")
 
 

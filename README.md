@@ -391,10 +391,13 @@ eif particle outdated                  # show available updates across all matte
 eif particle remove aws/db
 ```
 
-The registry defaults to `https://github.com/giordanocardillo/eif-library`. To use a different registry, edit `eif.particles.json` at the repo root:
+`eif.particles.json` is the project manifest (like `package.json`). It contains the project name and, optionally, a registry override. The registry defaults to `https://github.com/giordanocardillo/eif-library` — no configuration needed. To use a different registry, add it explicitly:
 
 ```json
-{ "registry": "https://github.com/your-org/your-library" }
+{
+  "name": "my-infra",
+  "registry": "https://github.com/your-org/your-library"
+}
 ```
 
 If a molecule is missing when rendering, `eif` fails with a clear install message. Render and plan also print a non-blocking warning when newer versions are available in the registry.
@@ -492,7 +495,7 @@ Rollback restores a previous rendered `main.tf` and re-applies it. Terraform com
 - [x] Vulnerability scanning (`eif scan` via Trivy — opt-in via `--scan` or interactive prompt)
 - [x] Upgrade preview with breaking-change detection (`eif preview`)
 - [x] Particle package manager (`eif particle` — install, add, update, outdated)
-- [x] Registry configuration (`eif.particles.json` — local or remote GitHub URL)
+- [x] Project manifest (`eif.particles.json` — name + optional registry override)
 - [x] Outdated alerts on render/plan/apply
 - [x] Safe update mode (`eif particle update --safe` — skips major bumps)
 - [x] Project scaffolding (`eif init` — providers, accounts.json, .gitignore, matters/)
