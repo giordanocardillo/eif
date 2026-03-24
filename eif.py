@@ -1877,7 +1877,7 @@ def cmd_init_project(args: list[str]) -> None:
     print(f"\n{_em('✅')} {_c('project ready', 'bgreen', 'bold')}\n")
     print(f"  {_c('next steps:', 'dim')}")
     print(f"  {_c('1.', 'dim')} edit {_c('accounts.json', 'cyan')} with your cloud credentials")
-    print(f"  {_c('2.', 'dim')} run  {_c('eif particle install', 'bgreen')} to download molecules")
+    print(f"  {_c('2.', 'dim')} run  {_c('eif particle add <pvd>/<name>', 'bgreen')} to fetch particles")
     print(f"  {_c('3.', 'dim')} run  {_c('eif new matter', 'bgreen')} to scaffold your first matter\n")
 
 
@@ -2203,7 +2203,7 @@ def cmd_new_matter(args: list[str]) -> None:
         sys.exit(f"❌  ERROR: {out.relative_to(cwd)} already exists")
 
     # Molecule selection — local authored + cached particles only
-    # Use `eif particle add` first to fetch molecules from the registry
+    # Use `eif particle add` first to fetch particles from the registry
     all_mols = _list_molecules(provider, repo_root)
 
     selected_mols: list[dict] = []
@@ -2563,14 +2563,14 @@ def cmd_particle(args: list[str]) -> None:
     if not args or args[0] not in SUBS:
         sys.exit(
             "Usage:\n"
-            "Particles are molecules. Atoms are bundled automatically as dependencies.\n"
+            "Particles are remote molecules fetched from the registry. Local molecules and atoms are authored directly.\n"
             "\n"
-            "  eif particle install                       Install all molecules from composition files\n"
-            "  eif particle add <provider>/<name>[@<ver>] Download molecule (+ pin if inside a matter)\n"
-            "  eif particle remove <provider>/<name>      Remove molecule from matter\n"
+            "  eif particle install                       Install all pinned particles\n"
+            "  eif particle add <provider>/<name>[@<ver>] Download particle (+ pin if inside a matter)\n"
+            "  eif particle remove <provider>/<name>      Remove particle from matter\n"
             "  eif particle update [<provider>/<name>]    Update to latest (interactive diff + confirm)\n"
             "  eif particle update --safe                  Skip major-version bumps\n"
-            "  eif particle list                           Show installed molecules\n"
+            "  eif particle list                           Show installed particles\n"
             "  eif particle outdated                       Show available updates across all matters"
         )
     SUBS[args[0]](args[1:])
@@ -2730,20 +2730,20 @@ def _usage() -> str:
         sub("remove", "molecule", "[<pvd> <name>]",                       "delete a local molecule"),
         sub("remove", "matter",   "[<pvd> <name>]",                       "delete a local matter"),
         "",
-        b("  PARTICLES  ") + d("(molecules from registry — atoms bundled automatically)"),
+        b("  PARTICLES  ") + d("(remote molecules + bundled atoms from registry)"),
 
-        psub("install",  "",                            "install all pinned molecules"),
-        psub("add",      "<pvd>/<name>[@<ver>]",         "download molecule (+ pin if inside matter)"),
+        psub("install",  "",                            "install all pinned particles"),
+        psub("add",      "<pvd>/<name>[@<ver>]",         "download particle (+ pin if inside matter)"),
         psub("remove",   "<pvd>/<name>",                "unpin molecule from matter"),
         psub("update",   "[<pvd>/<name>] [--safe]",     "update to latest, show diff, confirm"),
         psub("outdated", "",                            "show available updates across all matters"),
-        psub("list",     "",                            "show installed molecules"),
+        psub("list",     "",                            "show installed particles"),
         row("cache",  "clean",                          "delete eif_particles/ cache"),
         "",
         b("  DEPLOYMENT"),
         row("render",   "[<pvd> <matter> <env>]",       "render composition → .rendered/<env>/main.tf"),
         row("preview",  "atom|molecule [<pvd> <name> [<from> <to>]]", "diff interface, flag breaking changes"),
-        row("preview",  "matter [<pvd> <matter> <env>]","diff all molecules against registry"),
+        row("preview",  "matter [<pvd> <matter> <env>]","diff all particles against registry"),
         row("plan",     "[<pvd> <matter> <env>] [--scan]", "render + terraform plan"),
         row("apply",    "[<pvd> <matter> <env>] [--scan]", "render + terraform apply + snapshot"),
         row("destroy",  "[<pvd> <matter> <env>]",       "terraform destroy"),
