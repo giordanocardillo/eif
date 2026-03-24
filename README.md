@@ -383,7 +383,7 @@ eif package update                    # all molecules in current matter
 eif package update --safe             # skip major-version bumps
 
 # inspect
-eif package list                      # show installed molecules
+eif package list                      # show installed packages
 eif package outdated                  # show available updates across all matters
 
 # remove from composition.json (cache is shared — not deleted)
@@ -424,6 +424,11 @@ eif new molecule my-service
 # installs them at their latest version, and pins them in composition.json
 eif new matter
 eif new matter my-app
+
+# add a molecule to the current matter (run from inside a matter directory)
+eif add aws/db                # local-first, falls back to registry
+eif add aws/db@1.2.0          # specific version
+eif add                       # interactive picker of local + cached molecules
 
 # remove a local atom / molecule / matter (shows files, confirms before deleting)
 eif remove atom
@@ -492,13 +497,14 @@ Rollback restores a previous rendered `main.tf` and re-applies it. Terraform com
 - [x] Snapshot history and rollback
 - [x] Backend bootstrap (`eif config backend`)
 - [x] Vulnerability scanning (`eif scan` via Trivy — opt-in via `--scan` or interactive prompt)
-- [x] Upgrade preview with breaking-change detection (`eif diff`)
+- [x] Upgrade diff with breaking-change detection (`eif diff`)
 - [x] Package manager (`eif package` — install, update, outdated)
 - [x] Project manifest (`eif.project.json` — name + optional registry override)
 - [x] Outdated alerts on render/plan/apply
 - [x] Safe update mode (`eif package update --safe` — skips major bumps)
 - [x] Project scaffolding (`eif init` — providers, accounts.json, .gitignore, matters/)
 - [x] Component removal (`eif remove atom`, `eif remove molecule`, `eif remove matter`)
+- [x] Add molecule to matter (`eif add <pvd>/<name>` — local-first, registry fallback, interactive)
 - [x] Cache management (`eif cache clean`)
 - [x] Download progress bar (apt-style `[████░░░░] X/N files`)
 - [x] Provider block auto-prepended by renderer — no `{{ provider_block }}` in templates
