@@ -1909,11 +1909,95 @@ def cmd_init(args: list[str]) -> None:
     SUB[args[0]](args[1:])
 
 
+def _pin_molecule_to_comp(comp_file: Path, comp: dict,
+                          source: str, name: str, version: str) -> None:
+    """Update or append a molecule entry in composition.json (mutates comp, writes file)."""
+    existing = next((m for m in comp.get("molecules", []) if m["source"] == source), None)
+    if existing:
+        old_ver = existing["version"]
+        if old_ver == version:
+            print(f"  {_c(source, 'dim')} already at {_c(version, 'dim')} — skipped")
+            return
+        existing["version"] = version
+        comp_file.write_text(json.dumps(comp, indent=2) + "\n")
+        print(f"{_em('✅')}updated   {_c(source, 'cyan')} {_c(old_ver, 'yellow')} {_arr()} {_c(version, 'bgreen', 'bold')}")
+    else:
+        entry_name = name.replace("-", "_")
+        comp.setdefault("molecules", []).append(
+            {"name": entry_name, "source": source, "version": version}
+        )
+        comp_file.write_text(json.dumps(comp, indent=2) + "\n")
+        print(f"{_em('✅')}pinned    {_c(source, 'cyan')}@{_c(version, 'bgreen', 'bold')} "
+              f"{_c('→ composition.json', 'dim')}")
+
+
 def cmd_add(args: list[str]) -> None:
-    SUB = {"account": cmd_init_account}
-    if not args or args[0] not in SUB:
-        sys.exit("Usage:\n  eif add account  Add an account entry to accounts.json")
-    SUB[args[0]](args[1:])
+    # eif add account — existing sub-command
+    if args and args[0] == "account":
+        return cmd_init_account(args[1:])
+
+    # eif add [<provider>/<name>[@version]] — add molecule to current matter
+    repo_root = find_repo_root(Path.cwd())
+    registry  = _require_registry(repo_root)
+
+    result = _matter_composition(repo_root)
+    if result is None:
+        sys.exit(
+            "Usage:\n"
+            "  eif add account                  Add an account entry to accounts.json\n"
+            "  eif add [<pvd>/<name>[@ver]]     Add molecule to current matter\n"
+            "  (run from inside a matter directory)"
+        )
+
+    comp_file, comp = result
+    provider = comp_file.parent.name   # matters/<name>/<provider>/composition.json
+
+    if args:
+        # ── Non-interactive: eif add aws/db[@1.2.0] ──────────────────────────
+        raw     = args[0]
+        version = None
+        if "@" in raw:
+            raw, version = raw.split("@", 1)
+
+        if "/" not in raw:
+            sys.exit("❌  ERROR: source must be <provider>/<name>  e.g. aws/db")
+        src_provider, name = raw.split("/", 1)
+        source = f"{src_provider}/{name}"
+
+        if not version:
+            # Local-first: check authored then cached
+            local_ver = (latest_version(repo_root / "molecules" / src_provider / name)
+                         or latest_version(_packages_dir(repo_root) / "molecules" / src_provider / name))
+            if local_ver:
+                version = local_ver
+            else:
+                # Fall back to registry
+                versions = _remote_list_versions(registry, f"molecules/{src_provider}/{name}")
+                if not versions:
+                    sys.exit(f"❌  ERROR: {source} not found locally or in registry")
+                version = versions[-1]
+                print(f"  {_c('fetching from registry', 'dim')} {_arr()} {_c(version, 'bgreen')}")
+                _install_molecule(registry, src_provider, name, version, repo_root)
+        else:
+            # Specific version — ensure it's present locally, install if not
+            cached = (_packages_dir(repo_root) / "molecules" / src_provider / name / version)
+            local  = repo_root / "molecules" / src_provider / name / version
+            if not local.is_dir() and not cached.is_dir():
+                _install_molecule(registry, src_provider, name, version, repo_root)
+
+        _pin_molecule_to_comp(comp_file, comp, source, name, version)
+
+    else:
+        # ── Interactive: pick from local + cached molecules ───────────────────
+        all_mols = _list_molecules(provider, repo_root)
+        if not all_mols:
+            sys.exit(f"❌  ERROR: no molecules found for {provider} — "
+                     f"run eif pkg i <provider>/<name> to fetch from registry first")
+        print()
+        selected = _multiselect("molecules to add", all_mols)
+        print()
+        for mol in selected:
+            _pin_molecule_to_comp(comp_file, comp, mol["source"], mol["name"], mol["version"])
 
 
 # ── Commands (remove) ─────────────────────────────────────────────────────────
@@ -2737,6 +2821,7 @@ def _usage() -> str:
         row("init",    "[<folder>]",                    "scaffold new project (providers, accounts, .gitignore)"),
         row("init",    "backend [<pvd> <matter> <env>]","bootstrap remote state bucket"),
         row("add",     "account",                       "add an account entry to accounts.json"),
+        row("add",     "[<pvd>/<name>[@ver]]",           "add molecule to current matter (interactive if no args)"),
         row("list",    "[providers|atoms|molecules|matters] [<pvd>]", "list local components (all if no subcommand)"),
         row("version", "",                              "print eif version"),
         "",
