@@ -2060,7 +2060,6 @@ def cmd_new_molecule(args: list[str]) -> None:
     repo_root = find_repo_root(Path.cwd())
     cwd = Path.cwd()
 
-    name      = args[0] if len(args) > 0 else _ask("name")
     providers = _detect_providers(repo_root)
     if not providers:
         sys.exit("❌  ERROR: no providers found in providers/")
@@ -2072,6 +2071,10 @@ def cmd_new_molecule(args: list[str]) -> None:
     else:
         provider = _choose("provider", providers)
 
+    if not _list_atoms(provider, repo_root):
+        sys.exit(f"❌  ERROR: no atoms found for {provider} — create atoms first with 'eif new atom'")
+
+    name     = args[0] if len(args) > 0 else _ask("name")
     mol_dir  = repo_root / "molecules" / provider / name
     existing = latest_version(mol_dir)
     non_interactive = len(args) >= 3
@@ -2095,8 +2098,6 @@ def cmd_new_molecule(args: list[str]) -> None:
 
     # Atom selection
     all_atoms = _list_atoms(provider, repo_root)
-    if not all_atoms:
-        sys.exit(f"❌  ERROR: no atoms found for {provider} — create atoms first with 'eif new atom'")
     selected_atoms: list[dict] = []
     if len(args) > 2:
         atom_map = {f"{a['category']}/{a['name']}": a for a in all_atoms}
