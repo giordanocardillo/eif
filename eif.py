@@ -413,6 +413,11 @@ def _install_molecule(registry: str, provider: str, name: str, version: str, rep
     if dest.is_dir():
         print(f"  {_c('✓', 'bgreen')} {_c(label, 'cyan')}  already cached")
         return
+    # If a local copy exists (authored in this repo), skip the download
+    local = repo_root / "molecules" / provider / name / version
+    if local.is_dir():
+        print(f"  {_c('✓', 'bgreen')} {_c(label, 'cyan')}  local")
+        return
 
     reg_rel  = f"molecules/{provider}/{name}/{version}"
     mol_plan = _collect_download_plan(registry, reg_rel, dest)
