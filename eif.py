@@ -1933,7 +1933,7 @@ def _require_registry(repo_root: Path) -> str:
         sys.exit(
             "❌  ERROR: no remote registry configured\n"
             "    create eif.particles.json with:\n"
-            '    {"registry": "https://github.com/org/eif-library"}'
+            '    {"registry": "https://github.com/giordanocardillo/eif-library"}'
         )
     return registry
 
@@ -2173,7 +2173,7 @@ def cmd_particle_init(args: list[str]) -> None:  # noqa: ARG001
         print(f"{_em('ℹ️')} {_c('eif.particles.json already exists', 'dim')}")
         print(cfg_file.read_text())
         return
-    registry = _ask("registry URL (or 'local')", "https://github.com/org/eif-library")
+    registry = _ask("registry URL (or 'local')", "https://github.com/giordanocardillo/eif-library")
     config   = {"registry": registry}
     cfg_file.write_text(json.dumps(config, indent=2) + "\n")
     print(f"{_em('✅')}created   {_arr()} {_c(str(cfg_file), 'cyan')}")
