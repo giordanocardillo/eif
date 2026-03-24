@@ -1977,7 +1977,7 @@ def cmd_remove(args: list[str]) -> None:
 
 def cmd_new_atom(args: list[str]) -> None:
     repo_root = find_repo_root(Path.cwd())
-    cwd = Path.cwd()
+    cwd = repo_root
 
     name      = args[0] if len(args) > 0 else _ask("name")
     providers = _detect_providers(repo_root)
@@ -2058,7 +2058,7 @@ def cmd_new_atom(args: list[str]) -> None:
 
 def cmd_new_molecule(args: list[str]) -> None:
     repo_root = find_repo_root(Path.cwd())
-    cwd = Path.cwd()
+    cwd = repo_root
 
     providers = _detect_providers(repo_root)
     if not providers:
@@ -2172,7 +2172,7 @@ def cmd_new_molecule(args: list[str]) -> None:
 
 def cmd_new_matter(args: list[str]) -> None:
     repo_root = find_repo_root(Path.cwd())
-    cwd = Path.cwd()
+    cwd = repo_root
 
     name      = args[0] if len(args) > 0 else _ask("name")
     providers = _detect_providers(repo_root)
