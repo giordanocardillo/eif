@@ -795,7 +795,10 @@ def _do_render(matter_path: Path, env: str) -> tuple[Path, dict, dict, dict, Pat
         "# ============================================================================\n"
         "\n"
     )
-    output_file.write_text(header + rendered)
+    # Strip any {{ provider_block }} the template may have included manually,
+    # then prepend the provider block automatically so templates don't need it.
+    rendered_clean = rendered.replace(provider_block, "").lstrip("\n")
+    output_file.write_text(header + provider_block + "\n" + rendered_clean)
     print(f"{_pfx()} {_em('🔧')}rendered  {_arr()} {_c(str(output_file), 'cyan')}")
 
     outputs_tf = "".join(
@@ -2137,8 +2140,8 @@ def cmd_new_matter(args: list[str]) -> None:
     _write(out / "prod.example.json", json.dumps({"account": "prod"}, indent=2) + "\n", cwd)
 
     # main.tf.j2 — one module block per selected molecule
-    template = "{{ provider_block }}\n"
-    template += "# ── Molecules ─────────────────────────────────────────────────────────────────\n\n"
+    # provider block is prepended automatically by the renderer — no need to include it here
+    template = "# ── Molecules ─────────────────────────────────────────────────────────────────\n\n"
     if selected_mols:
         for mol in selected_mols:
             template += (
