@@ -13,9 +13,12 @@ Commands:
     eif init                                      Scaffold a new eif project
     eif init backend [<provider> <matter> <env>]  Bootstrap remote state bucket
     eif add account                               Add an account entry to accounts.json
-    eif new atom     [<name> [<provider> [<category>]]]
-    eif new molecule [<name> [<provider> [<category/atom>,...  ]]]
-    eif new matter   [<name> [<provider> [<molecule>,...       ]]]
+    eif new    atom     [<name> [<provider> [<category>]]]
+    eif new    molecule [<name> [<provider> [<category/atom>,...  ]]]
+    eif new    matter   [<name> [<provider> [<molecule>,...       ]]]
+    eif remove atom     [<provider> <category> <name>]
+    eif remove molecule [<provider> <name>]
+    eif remove matter   [<provider> <name>]
     eif particle init|install|add|remove|update|list|outdated
 
 Install as a shell command:
@@ -1870,6 +1873,95 @@ def cmd_add(args: list[str]) -> None:
     SUB[args[0]](args[1:])
 
 
+# ── Commands (remove) ─────────────────────────────────────────────────────────
+
+def _confirm_remove(target: Path, repo_root: Path) -> None:
+    """Print the target path and ask for confirmation before deleting."""
+    rel = target.relative_to(repo_root)
+    print(f"\n  {_c('remove', 'red', 'bold')}  {_c(str(rel), 'cyan')}\n")
+    for f in sorted(target.rglob("*")):
+        if f.is_file():
+            print(f"    {_c('-', 'red')} {f.relative_to(repo_root)}")
+    print()
+    if not _confirm(f"delete {rel}?", default=False):
+        sys.exit("aborted")
+    shutil.rmtree(target)
+    print(f"{_em('✅')}removed   {_arr()} {_c(str(rel), 'cyan')}")
+
+
+def cmd_remove_atom(args: list[str]) -> None:
+    repo_root = find_repo_root(Path.cwd())
+    providers = _detect_providers(repo_root)
+
+    provider = args[0] if len(args) > 0 else _choose("provider", providers)
+    cats     = _atom_categories(provider, repo_root)
+    category = args[1] if len(args) > 1 else _choose("category", cats)
+
+    atom_dir = repo_root / "atoms" / provider / category
+    atoms    = [d.name for d in sorted(atom_dir.iterdir()) if d.is_dir()] if atom_dir.is_dir() else []
+    if not atoms:
+        sys.exit(f"❌  ERROR: no atoms found in {atom_dir}")
+    name = args[2] if len(args) > 2 else _choose("atom", atoms)
+
+    target = atom_dir / name
+    if not target.is_dir():
+        sys.exit(f"❌  ERROR: {target} not found")
+    _confirm_remove(target, repo_root)
+
+
+def cmd_remove_molecule(args: list[str]) -> None:
+    repo_root = find_repo_root(Path.cwd())
+    providers = _detect_providers(repo_root)
+
+    provider  = args[0] if len(args) > 0 else _choose("provider", providers)
+    mol_dir   = repo_root / "molecules" / provider
+    molecules = [d.name for d in sorted(mol_dir.iterdir()) if d.is_dir()] if mol_dir.is_dir() else []
+    if not molecules:
+        sys.exit(f"❌  ERROR: no molecules found for provider '{provider}'")
+    name = args[1] if len(args) > 1 else _choose("molecule", molecules)
+
+    target = mol_dir / name
+    if not target.is_dir():
+        sys.exit(f"❌  ERROR: {target} not found")
+    _confirm_remove(target, repo_root)
+
+
+def cmd_remove_matter(args: list[str]) -> None:
+    repo_root = find_repo_root(Path.cwd())
+    providers = _detect_providers(repo_root)
+
+    provider = args[0] if len(args) > 0 else _choose("provider", providers)
+    matters  = _list_matters(provider, repo_root)
+    if not matters:
+        sys.exit(f"❌  ERROR: no matters found for provider '{provider}'")
+    name = args[1] if len(args) > 1 else _choose("matter", matters)
+
+    target = repo_root / "matters" / name / provider
+    if not target.is_dir():
+        sys.exit(f"❌  ERROR: {target} not found")
+    _confirm_remove(target, repo_root)
+    # Remove the parent matter dir too if now empty
+    parent = target.parent
+    if parent.is_dir() and not any(parent.iterdir()):
+        parent.rmdir()
+
+
+def cmd_remove(args: list[str]) -> None:
+    SUB = {
+        "atom":     cmd_remove_atom,
+        "molecule": cmd_remove_molecule,
+        "matter":   cmd_remove_matter,
+    }
+    if not args or args[0] not in SUB:
+        sys.exit(
+            "Usage:\n"
+            "  eif remove atom     [<provider> <category> <name>]\n"
+            "  eif remove molecule [<provider> <name>]\n"
+            "  eif remove matter   [<provider> <name>]"
+        )
+    SUB[args[0]](args[1:])
+
+
 # ── Commands (new) ────────────────────────────────────────────────────────────
 
 def cmd_new_atom(args: list[str]) -> None:
@@ -2597,6 +2689,7 @@ def main() -> None:
         "destroy":  cmd_destroy,
         "rollback": cmd_rollback,
         "new":      cmd_new,
+        "remove":   cmd_remove,
         "add":      cmd_add,
         "init":     cmd_init,
         "particle": cmd_particle,
