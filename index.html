@@ -20,6 +20,7 @@
     --atom: #4af0c4;
     --molecule: #3a8fff;
     --matter: #f0884a;
+    --particle: #a78bfa;
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -382,6 +383,32 @@
   .molecule .h-card-example span.hi { color: var(--molecule); }
   .matter .h-card-example span.hi { color: var(--matter); }
 
+  .h-card.particle::before { background: var(--particle); }
+  .h-card.particle:hover { border-color: rgba(167,139,250,0.4); }
+  .particle .h-card-num { color: var(--particle); }
+  .particle .h-card-title { color: var(--particle); }
+  .particle .h-card-example span.hi { color: var(--particle); }
+
+  /* ── TERMINAL BLOCK ── */
+  .terminal {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.78rem;
+    line-height: 1.9;
+    background: #020408;
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--particle);
+    padding: 28px 32px;
+    margin-top: 48px;
+    border-radius: 2px;
+    overflow-x: auto;
+  }
+  .t-cmd  { color: var(--particle); }
+  .t-ok   { color: var(--atom); }
+  .t-dl   { color: var(--molecule); }
+  .t-warn { color: var(--accent3); }
+  .t-dim  { color: #3a4a6a; }
+  .t-path { color: var(--text-muted); }
+
   /* ── PHILOSOPHY ── */
   .philosophy {
     background: var(--surface);
@@ -539,6 +566,7 @@
     .philosophy-quote { font-size: clamp(1rem, 4vw, 1.3rem); }
 
     .file-tree { font-size: 0.68rem; padding: 18px 16px; line-height: 1.75; margin-top: 32px; }
+    .terminal { font-size: 0.65rem; padding: 16px 14px; margin-top: 28px; }
 
     footer { flex-direction: column; gap: 10px; text-align: center; padding: 28px 20px; }
   }
@@ -559,6 +587,7 @@
     .h-card-title { font-size: 1.3rem; }
     .philosophy { padding: 20px 16px; }
     .file-tree { font-size: 0.62rem; padding: 14px 12px; }
+    .terminal { font-size: 0.6rem; padding: 12px 10px; }
   }
 </style>
 </head>
@@ -580,6 +609,7 @@
     <li><a href="#hierarchy">Hierarchy</a></li>
     <li><a href="#providers">Providers</a></li>
     <li><a href="#versioning">Versioning</a></li>
+    <li><a href="#particles" style="color:var(--particle)">Particles</a></li>
     <li><a href="#scaffolding">Scaffold</a></li>
     <li><a href="#state">State</a></li>
     <li><a href="#structure">Structure</a></li>
@@ -609,7 +639,7 @@
     </svg>
   </div>
 
-  <span class="badge">v0.1.0 — TERRAFORM LIBRARY</span>
+  <span class="badge">v0.2.0 — SEMVER · PARTICLES</span>
   <h1><span class="accent-e">E</span>lemental <span class="accent-i">I</span>nfrastructure <span class="accent-f">F</span>ramework</h1>
   <p class="hero-subtitle">Build infrastructure the way nature builds matter</p>
   <p class="hero-desc">
@@ -622,7 +652,7 @@
     <a href="#hierarchy" class="btn btn-primary">Explore the Model</a>
     <a href="#structure" class="btn btn-secondary">View Structure →</a>
   </div>
-  <span class="code-pill">eif apply aws three-tier-app dev</span>
+  <span class="code-pill">eif particle install &amp;&amp; eif apply aws three-tier-app dev</span>
 </div>
 
 <div class="divider"></div>
@@ -669,15 +699,15 @@
         scoped to one service only. Namespaced by cloud. Atoms are composed by molecules and are never deployed directly.
       </p>
       <div class="h-card-example">
-        <span class="hi">atoms/aws/compute/lambda/v1/</span>
-        <span class="hi">atoms/aws/networking/cloudfront/v1/</span>
-        <span class="hi">atoms/aws/storage/s3/v1/ · rds/v1/</span>
-        <span class="hi">atoms/aws/security/waf/v1/ · sg/v1/</span>
-        <span class="hi">atoms/azure/storage/blob/v1/</span>
-        <span class="hi">atoms/azure/networking/frontdoor/v1/</span>
-        <span class="hi">atoms/gcp/storage/gcs/v1/</span>
-        <span class="hi">atoms/gcp/networking/cdn/v1/</span>
-        <span class="hi">atoms/gcp/security/armor/v1/</span>
+        <span class="hi">atoms/aws/compute/lambda/1.0.0/</span>
+        <span class="hi">atoms/aws/networking/cloudfront/1.0.0/</span>
+        <span class="hi">atoms/aws/storage/s3/1.0.0/ · rds/1.0.0/</span>
+        <span class="hi">atoms/aws/security/waf/1.0.0/ · sg/1.0.0/</span>
+        <span class="hi">atoms/azure/storage/blob/1.0.0/</span>
+        <span class="hi">atoms/azure/networking/frontdoor/1.0.0/</span>
+        <span class="hi">atoms/gcp/storage/gcs/1.0.0/</span>
+        <span class="hi">atoms/gcp/networking/cdn/1.0.0/</span>
+        <span class="hi">atoms/gcp/security/armor/1.0.0/</span>
       </div>
     </div>
 
@@ -690,16 +720,16 @@
         Molecules are composed by matter and are never deployed directly.
       </p>
       <div class="h-card-example">
-        <span class="hi">molecules/aws/single-page-application/v1/</span>
-        <span>  ├── s3/v1 + cloudfront/v1 + waf/v1</span>
-        <span class="hi">molecules/aws/db/v1/</span>
-        <span>  ├── rds/v1 + sg/v1</span>
-        <span class="hi">molecules/aws/lambda-svc/v1/</span>
-        <span>  ├── lambda/v1 + sg/v1</span>
-        <span class="hi">molecules/azure/single-page-application/v1/</span>
-        <span>  ├── blob/v1 + frontdoor/v1</span>
-        <span class="hi">molecules/gcp/single-page-application/v1/</span>
-        <span>  ├── gcs/v1 + cdn/v1 + armor/v1</span>
+        <span class="hi">molecules/aws/single-page-application/1.0.0/</span>
+        <span>  ├── s3/1.0.0 + cloudfront/1.0.0 + waf/1.0.0</span>
+        <span class="hi">molecules/aws/db/1.0.0/</span>
+        <span>  ├── rds/1.0.0 + sg/1.0.0</span>
+        <span class="hi">molecules/aws/lambda-svc/1.0.0/</span>
+        <span>  ├── lambda/1.0.0 + sg/1.0.0</span>
+        <span class="hi">molecules/azure/single-page-application/1.0.0/</span>
+        <span>  ├── blob/1.0.0 + frontdoor/1.0.0</span>
+        <span class="hi">molecules/gcp/single-page-application/1.0.0/</span>
+        <span>  ├── gcs/1.0.0 + cdn/1.0.0 + armor/1.0.0</span>
       </div>
     </div>
 
@@ -708,12 +738,12 @@
       <p class="h-card-num">LEVEL 03 — MATTER</p>
       <h3 class="h-card-title">Matter</h3>
       <p class="h-card-desc">
-        A complete application composed of molecules. Structure is declared once in <code>composition.json</code>; each <code>&lt;env&gt;.json</code> is a flat pool of variables — no per-molecule grouping, no repeated <code>environment</code> key (injected automatically). The template is the wiring layer.
+        A complete application composed of molecules. Structure declared once in <code>composition.json</code> with exact semver pins — the composition is the lock. Each <code>&lt;env&gt;.json</code> is a flat variable pool; <code>environment</code> is injected automatically.
       </p>
       <div class="h-card-example">
         <span class="hi">matters/three-tier-app/aws/</span>
-        <span>  ├── composition.json</span>
-        <span>  ├── dev.json · test.json · prod.json</span>
+        <span>  ├── composition.json  <span style="color:#3a4a6a"># molecule list + exact pins</span></span>
+        <span>  ├── dev.json · prod.json</span>
         <span>  └── main.tf.j2</span>
         <span class="hi">matters/single-page-application/aws/</span>
         <span class="hi">matters/single-page-application/azure/</span>
@@ -763,32 +793,130 @@
 <!-- VERSIONING -->
 <section id="versioning">
   <p class="section-label reveal">Stability guarantee</p>
-  <h2 class="section-title reveal">Versioning</h2>
+  <h2 class="section-title reveal">Semver versioning</h2>
   <p class="section-body reveal">
-    Atoms and molecules evolve without breaking existing deployments.
-    Every breaking change creates a new version directory alongside the old one —
-    matter in production stays pinned forever.
+    Atoms and molecules use <strong>semantic versioning</strong> (<code>MAJOR.MINOR.PATCH</code>).
+    Every breaking change creates a new version directory — compositions pinned to old versions are never touched.
   </p>
 
   <div class="philosophy reveal" style="margin-top:48px;">
     <p class="philosophy-quote" style="font-size:1rem;font-weight:400;line-height:1.9;color:var(--text-muted);">
-      <strong style="color:var(--text)">Bug fix or new optional variable</strong> → edit in place within the existing version.<br>
-      <strong style="color:var(--text)">Breaking change</strong> → create a new version directory alongside the old one.<br><br>
-      <span style="font-family:'Space Mono',monospace;font-size:0.8rem;color:var(--atom)">atoms/aws/storage/s3/v1/</span><span style="font-family:'Space Mono',monospace;font-size:0.8rem;color:var(--text-muted)"> ← prod matter stays pinned here</span><br>
-      <span style="font-family:'Space Mono',monospace;font-size:0.8rem;color:var(--atom)">atoms/aws/storage/s3/v2/</span><span style="font-family:'Space Mono',monospace;font-size:0.8rem;color:var(--text-muted)"> ← new feature, new interface</span>
+      <strong style="color:var(--text)">patch</strong> &nbsp;→&nbsp; bug fix, no interface change &nbsp;<span style="font-family:'Space Mono',monospace;color:var(--atom);font-size:0.8rem;">1.0.0 → 1.0.1</span><br>
+      <strong style="color:var(--text)">minor</strong> &nbsp;→&nbsp; new optional variable or output &nbsp;<span style="font-family:'Space Mono',monospace;color:var(--atom);font-size:0.8rem;">1.0.0 → 1.1.0</span><br>
+      <strong style="color:var(--text)">major</strong> &nbsp;→&nbsp; breaking change (required var, type change, removed output) &nbsp;<span style="font-family:'Space Mono',monospace;color:var(--atom);font-size:0.8rem;">1.0.0 → 2.0.0</span><br><br>
+      <span style="font-family:'Space Mono',monospace;font-size:0.8rem;color:var(--atom)">atoms/aws/storage/rds/1.0.0/</span><span style="font-family:'Space Mono',monospace;font-size:0.8rem;color:var(--text-muted)"> ← matter stays pinned here</span><br>
+      <span style="font-family:'Space Mono',monospace;font-size:0.8rem;color:var(--atom)">atoms/aws/storage/rds/2.0.0/</span><span style="font-family:'Space Mono',monospace;font-size:0.8rem;color:var(--text-muted)"> ← breaking: new required variable</span>
     </p>
-    <span class="philosophy-attr">Compositions pin to an explicit version — upgrade is always a deliberate choice.</span>
+    <span class="philosophy-attr">Each matter composition pins exact versions — upgrade is always a deliberate choice.</span>
   </div>
 
   <div class="file-tree reveal" style="margin-top:32px;">
 <pre>
-<span class="ft-comment"># upgrade a matter composition to latest molecule versions</span>
-<span style="color:var(--accent)">eif upgrade</span> aws three-tier-app dev
+<span class="ft-comment"># composition.json — the composition is the lock</span>
+{
+  <span style="color:var(--matter)">"matter"</span>: <span style="color:var(--atom)">"three-tier-app"</span>,
+  <span style="color:var(--matter)">"molecules"</span>: [
+    { <span style="color:var(--molecule)">"name"</span>: <span style="color:var(--atom)">"db"</span>,  <span style="color:var(--molecule)">"source"</span>: <span style="color:var(--atom)">"aws/db"</span>,  <span style="color:var(--molecule)">"version"</span>: <span style="color:var(--atom)">"1.2.0"</span> },
+    { <span style="color:var(--molecule)">"name"</span>: <span style="color:var(--atom)">"spa"</span>, <span style="color:var(--molecule)">"source"</span>: <span style="color:var(--atom)">"aws/spa"</span>, <span style="color:var(--molecule)">"version"</span>: <span style="color:var(--atom)">"3.0.0"</span> }
+  ]
+}
 
-<span class="ft-comment"># [eif] upgraded  "molecules/aws/single-page-application/v1" → "molecules/aws/single-page-application/v2"</span>
-<span class="ft-comment"># [eif] up-to-date "molecules/aws/db/v1"</span>
-<span class="ft-comment"># [eif] wrote     → matters/three-tier-app/aws/composition.json</span>
+<span class="ft-comment"># preview what would break before updating</span>
+<span style="color:var(--accent)">eif preview</span> molecule aws db 1.2.0 2.0.0
+
+<span class="ft-comment"># update with interactive diff + confirmation</span>
+<span style="color:var(--accent)">eif particle</span> update aws/db
+<span style="color:var(--accent)">eif particle</span> update --safe          <span class="ft-comment"># skip major bumps</span>
 </pre>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- PARTICLES -->
+<section id="particles">
+  <p class="section-label reveal">Package management</p>
+  <h2 class="section-title reveal">Particles</h2>
+  <p class="section-body reveal">
+    <code>eif particle</code> is EIF's package manager — like npm, but for infrastructure components.
+    Atoms and molecules are installed from a registry into a local <code>eif_particles/</code> cache (gitignored).
+    Install is explicit: nothing downloads automatically.
+  </p>
+
+  <div class="hierarchy" style="grid-template-columns: repeat(2, 1fr); margin-top: 64px;">
+    <div class="h-card particle reveal">
+      <p class="h-card-num">MANIFEST</p>
+      <h3 class="h-card-title" style="font-size:1.2rem;">eif.particles.json</h3>
+      <p class="h-card-desc">Declares the registry. One file per project, at the repo root.</p>
+      <div class="h-card-example">
+        <span class="hi">{</span>
+        <span>  "registry":</span>
+        <span class="hi">  "https://github.com/org/eif-library"</span>
+        <span>}</span>
+      </div>
+    </div>
+    <div class="h-card particle reveal">
+      <p class="h-card-num">CACHE</p>
+      <h3 class="h-card-title" style="font-size:1.2rem;">eif_particles/</h3>
+      <p class="h-card-desc">Local store of downloaded atoms and molecules. Gitignored. Shared across all matters in the project.</p>
+      <div class="h-card-example">
+        <span>eif_particles/</span>
+        <span class="hi">├── atoms/aws/storage/rds/1.0.0/</span>
+        <span class="hi">└── molecules/aws/db/1.2.0/</span>
+        <span style="color:#3a4a6a">         └── main.tf · variables.tf</span>
+        <span style="color:#3a4a6a">              outputs.tf</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="terminal reveal">
+<span class="t-dim"># initialise registry (one-time)</span>
+<span class="t-cmd">$ eif particle init</span>
+<span class="t-ok">✓</span> <span class="t-path">created   → eif.particles.json</span>
+
+<span class="t-dim"># create a new matter — queries registry live, pins latest versions</span>
+<span class="t-cmd">$ eif new matter my-app</span>
+<span class="t-dim">  querying registry...</span>
+<span class="t-dim">  ◉ db                   1.2.0</span>
+<span class="t-dim">  ◉ single-page-application  3.0.0</span>
+<span class="t-ok">↓</span>  <span class="t-path">aws/db@1.2.0  installing...</span>
+<span class="t-ok">✓</span>  <span class="t-path">aws/db@1.2.0  installed</span>
+<span class="t-ok">↓</span>  <span class="t-path">aws/single-page-application@3.0.0  installing...</span>
+<span class="t-ok">✓</span>  <span class="t-path">aws/single-page-application@3.0.0  installed</span>
+
+<span class="t-dim"># after cloning a project — explicit install like npm install</span>
+<span class="t-cmd">$ eif particle install</span>
+<span class="t-ok">✓</span>  <span class="t-path">aws/db@1.2.0            already cached</span>
+<span class="t-dl">↓</span>  <span class="t-path">aws/spa@3.0.0           downloading...</span>  <span class="t-ok">done</span>
+
+<span class="t-dim"># check for updates across all matters</span>
+<span class="t-cmd">$ eif particle outdated</span>
+<span class="t-warn">⚠</span>  <span class="t-path">aws/db   1.2.0 → 1.3.0 available</span>
+<span class="t-warn">⚠</span>  <span class="t-path">aws/spa  3.0.0 → 4.0.0 available</span>
+
+<span class="t-dim"># update with diff preview + confirmation</span>
+<span class="t-cmd">$ eif particle update aws/db</span>
+<span class="t-dim">  + var  read_replica_count   number  (optional)</span>
+<span class="t-dim">  + out  replica_endpoints</span>
+<span class="t-dim">update aws/db 1.2.0 → 1.3.0? (Y/n)</span> <span class="t-ok">yes</span>
+<span class="t-ok">✓</span>  <span class="t-path">aws/db@1.3.0  installed</span>
+
+<span class="t-dim"># render warns non-blocking when updates are available</span>
+<span class="t-cmd">$ eif render aws my-app dev</span>
+<span class="t-ok">🔧</span> <span class="t-path">rendered  → .rendered/dev/main.tf</span>
+<span class="t-warn">  ⚠  aws/spa  3.0.0 → 4.0.0 available</span>
+<span class="t-dim">  run: eif particle update</span>
+  </div>
+
+  <div class="philosophy reveal" style="margin-top:32px;">
+    <p class="philosophy-quote" style="font-size:0.9rem;font-weight:400;line-height:1.9;color:var(--text-muted);">
+      If a particle is missing when rendering, <code>eif</code> <strong style="color:var(--text)">fails fast</strong> with a clear install message.<br>
+      Atom dependencies of a molecule are <strong style="color:var(--text)">installed automatically</strong> — their relative paths
+      are preserved in <code>eif_particles/</code> so Terraform resolves them without modification.<br><br>
+      Local atoms and molecules (authored but not yet published) coexist alongside registry particles —
+      the renderer checks <code>eif_particles/</code> first, then falls back to local <code>atoms/</code> and <code>molecules/</code>.
+    </p>
+    <span class="philosophy-attr">One registry. One cache. No lock file — the composition is the lock.</span>
   </div>
 </section>
 
@@ -806,32 +934,31 @@
 
   <div class="file-tree reveal" style="margin-top:48px;">
 <pre>
-<span class="ft-comment"># scaffold a new atom — prompts: name, provider, category</span>
+<span class="ft-comment"># scaffold a new atom — prompts: name, provider, category, bump type</span>
 <span style="color:var(--accent)">eif new atom</span>
 <span class="ft-comment">  name: cdn-origin</span>
 <span class="ft-comment">  provider: 1) aws  2) azure  3) gcp  → 1</span>
-<span class="ft-comment">  category: 1) compute  2) networking  3) storage  4) security  5) other  → 2</span>
-<span class="ft-comment">  [eif] atoms/aws/networking/cdn-origin — no existing versions, creating v1</span>
-<span class="ft-comment">  [eif] created   atoms/aws/networking/cdn-origin/v1/main.tf</span>
-<span class="ft-comment">  [eif] created   atoms/aws/networking/cdn-origin/v1/variables.tf</span>
-<span class="ft-comment">  [eif] created   atoms/aws/networking/cdn-origin/v1/outputs.tf</span>
+<span class="ft-comment">  category: 1) compute  2) networking  3) storage  → 2</span>
+<span class="ft-comment">  📦 atoms/aws/networking/cdn-origin — no existing versions, creating 1.0.0</span>
+<span class="ft-comment">  ✨ created   → atoms/aws/networking/cdn-origin/1.0.0/main.tf</span>
+<span class="ft-comment">  ✨ created   → atoms/aws/networking/cdn-origin/1.0.0/variables.tf</span>
+<span class="ft-comment">  ✨ created   → atoms/aws/networking/cdn-origin/1.0.0/outputs.tf</span>
 
-<span class="ft-comment"># scaffold a new molecule — prompts: name, provider</span>
+<span class="ft-comment"># scaffold a new molecule — prompts: name, provider, atoms to include</span>
 <span style="color:var(--accent)">eif new molecule</span> my-service
 
-<span class="ft-comment"># scaffold a new matter — prompts: name, provider</span>
+<span class="ft-comment"># scaffold a new matter — queries registry live, pins latest versions</span>
 <span style="color:var(--accent)">eif new matter</span> serverless-api
-<span class="ft-comment">  [eif] created   matters/serverless-api/aws/composition.json</span>
-<span class="ft-comment">  [eif] created   matters/serverless-api/aws/dev.example.json</span>
-<span class="ft-comment">  [eif] created   matters/serverless-api/aws/prod.example.json</span>
-<span class="ft-comment">  [eif] created   matters/serverless-api/aws/main.tf.j2</span>
+<span class="ft-comment">  ✨ created   → matters/serverless-api/aws/composition.json</span>
+<span class="ft-comment">  ✨ created   → matters/serverless-api/aws/dev.example.json</span>
+<span class="ft-comment">  ✨ created   → matters/serverless-api/aws/main.tf.j2</span>
 </pre>
   </div>
 
   <div class="philosophy reveal" style="margin-top:32px;">
     <p class="philosophy-quote" style="font-size:0.9rem;font-weight:400;line-height:1.9;color:var(--text-muted);">
       If an atom or molecule <strong style="color:var(--text)">already exists</strong>, the command reports the latest version<br>
-      and asks whether to create the next one — <span style="font-family:'Space Mono',monospace;color:var(--atom)">v1 → v2</span> — preserving all existing deployments.<br><br>
+      and asks for the <strong style="color:var(--text)">bump type</strong> — patch / minor / major — computing the next semver automatically.<br><br>
       Providers are <strong style="color:var(--text)">auto-detected</strong> from the <span style="font-family:'Space Mono',monospace;color:var(--atom)">providers/</span> directory —
       no hardcoded list, no config needed.
     </p>
@@ -904,11 +1031,12 @@
 <pre>
 <span class="ft-dir">eif/</span>                            <span class="ft-comment"># this repo — CLI tool only</span>
 <span class="ft-comment">│</span>
-<span class="ft-file">├── eif.py</span>                     <span class="ft-comment"># renderer, lifecycle, scaffold CLI</span>
+<span class="ft-file">├── eif.py</span>                     <span class="ft-comment"># renderer, lifecycle, scaffold, particle CLI</span>
 <span class="ft-file">├── pyproject.toml</span>              <span class="ft-comment"># Python project (uv / hatchling)</span>
 <span class="ft-comment">│</span>
 <span class="ft-file">└── examples/</span>                   <span class="ft-comment"># Reference implementation</span>
 <span class="ft-file">    ├── accounts.example.json</span>
+<span class="ft-file">    ├── eif.particles.json</span>      <span class="ft-comment"># registry config</span>
 <span class="ft-file">    ├── providers/</span>              <span class="ft-comment"># aws · azure · gcp</span>
 <span class="ft-atom">    ├── atoms/</span>
 <span class="ft-molecule">    ├── molecules/</span>
@@ -917,29 +1045,29 @@
   </div>
 
   <p class="section-body reveal" style="margin-top:2rem">
-    Your library repo follows the full component structure:
+    Your project repo follows the full component structure:
   </p>
 
   <div class="file-tree reveal">
 <pre>
-<span class="ft-dir">eif-library/</span>                    <span class="ft-comment"># <a href="https://github.com/giordanocardillo/eif-library" target="_blank" style="color:var(--accent)">github.com/giordanocardillo/eif-library</a></span>
+<span class="ft-dir">your-project/</span>                   <span class="ft-comment"># your infrastructure repo</span>
 <span class="ft-comment">│</span>
 <span class="ft-file">├── accounts.json</span>              <span class="ft-comment"># env → cloud account config</span>
+<span class="ft-file">├── eif.particles.json</span>         <span class="ft-comment"># registry URL</span>
+<span style="color:var(--particle)">├── eif_particles/</span>             <span class="ft-comment"># gitignored — downloaded atoms + molecules</span>
+<span style="color:var(--particle)">│   ├── atoms/&lt;cloud&gt;/&lt;cat&gt;/&lt;name&gt;/1.0.0/</span>
+<span style="color:var(--particle)">│   └── molecules/&lt;cloud&gt;/&lt;name&gt;/1.2.0/</span>
 <span class="ft-comment">│</span>
 <span class="ft-file">├── providers/</span>                  <span class="ft-comment"># Pluggable cloud provider templates</span>
 <span class="ft-file">│   ├── aws/provider.tf.j2 · backend.tf.j2</span>
-<span class="ft-file">│   ├── azure/provider.tf.j2 · backend.tf.j2</span>
-<span class="ft-file">│   └── gcp/provider.tf.j2 · backend.tf.j2</span>
+<span class="ft-file">│   └── ...</span>
 <span class="ft-comment">│</span>
-<span class="ft-atom">├── atoms/</span>                     <span class="ft-comment"># Atomic cloud services — namespaced + versioned</span>
-<span class="ft-atom">│   └── &lt;cloud&gt;/&lt;category&gt;/&lt;name&gt;/v1/</span>   <span class="ft-comment"># main.tf · variables.tf · outputs.tf</span>
-<span class="ft-comment">│</span>
-<span class="ft-molecule">├── molecules/</span>                  <span class="ft-comment"># Blueprints — namespaced + versioned</span>
-<span class="ft-molecule">│   └── &lt;cloud&gt;/&lt;name&gt;/v1/</span>
+<span class="ft-atom">├── atoms/</span>                     <span class="ft-comment"># local atoms (authoring only)</span>
+<span class="ft-molecule">├── molecules/</span>                  <span class="ft-comment"># local molecules (authoring only)</span>
 <span class="ft-comment">│</span>
 <span class="ft-matter">└── matters/</span>                    <span class="ft-comment"># Deployable applications</span>
 <span class="ft-matter">    └── &lt;name&gt;/&lt;cloud&gt;/</span>
-<span class="ft-file">        ├── composition.json</span>   <span class="ft-comment"># molecule list + pinned versions</span>
+<span class="ft-file">        ├── composition.json</span>   <span class="ft-comment"># molecule list + exact semver pins</span>
 <span class="ft-file">        ├── &lt;env&gt;.json</span>         <span class="ft-comment"># flat variable pool per environment</span>
 <span class="ft-file">        └── main.tf.j2</span>         <span class="ft-comment"># wiring template</span>
 </pre>
@@ -973,7 +1101,7 @@
 <!-- FOOTER -->
 <footer>
   <span>© 2026 Elemental Infrastructure Framework</span>
-  <span style="color:var(--accent)">EIF — v0.1.0</span>
+  <span style="color:var(--accent)">EIF — v0.2.0</span>
   <a href="https://github.com/giordanocardillo/eif" target="_blank" style="color:var(--text-muted);text-decoration:none;display:flex;align-items:center;gap:6px;transition:color 0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-muted)'">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
     giordanocardillo/eif
