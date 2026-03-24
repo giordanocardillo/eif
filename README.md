@@ -371,9 +371,6 @@ eif add account
 `eif particle` installs molecules from a registry into a local `eif_particles/` cache (gitignored). This is an explicit step — like `npm install`.
 
 ```bash
-# initialise registry config (one-time, creates eif.particles.json)
-eif particle init
-
 # download a molecule (installs to cache; also pins in composition.json if run inside a matter)
 eif particle add aws/db
 eif particle add aws/db 1.2.0          # or pin explicitly
@@ -394,10 +391,10 @@ eif particle outdated                  # show available updates across all matte
 eif particle remove aws/db
 ```
 
-`eif.particles.json` at the repo root configures the registry:
+The registry defaults to `https://github.com/giordanocardillo/eif-library`. To use a different registry, edit `eif.particles.json` at the repo root:
 
 ```json
-{ "registry": "https://github.com/giordanocardillo/eif-library" }
+{ "registry": "https://github.com/your-org/your-library" }
 ```
 
 If a molecule is missing when rendering, `eif` fails with a clear install message. Render and plan also print a non-blocking warning when newer versions are available in the registry.

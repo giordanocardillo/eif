@@ -212,7 +212,7 @@ def load_config(repo_root: Path) -> dict:
             return json.loads(cfg_file.read_text())
         except json.JSONDecodeError as e:
             sys.exit(f"❌  ERROR: eif.particles.json is invalid JSON — {e}")
-    return {"registry": "local"}
+    return {"registry": "https://github.com/giordanocardillo/eif-library"}
 
 
 def latest_version(module_path: Path) -> str | None:
@@ -1819,8 +1819,6 @@ def cmd_init_project(args: list[str]) -> None:
     if not selected:
         sys.exit("aborted")
 
-    registry = _ask("registry URL (or 'local')", "https://github.com/giordanocardillo/eif-library")
-
     # providers/ — write tf.j2 files for each selected provider
     for prov in selected:
         pdir = cwd / "providers" / prov
@@ -1839,7 +1837,7 @@ def cmd_init_project(args: list[str]) -> None:
 
     # eif.particles.json
     particles_file = cwd / "eif.particles.json"
-    particles_file.write_text(json.dumps({"registry": registry}, indent=2) + "\n")
+    particles_file.write_text(json.dumps({"registry": "https://github.com/giordanocardillo/eif-library"}, indent=2) + "\n")
     print(f"{_em('✨')}created   {_arr()} {_c('eif.particles.json', 'cyan')}")
 
     # .gitignore
@@ -2549,9 +2547,7 @@ def cmd_particle_init(args: list[str]) -> None:  # noqa: ARG001
         print(f"{_em('ℹ️')} {_c('eif.particles.json already exists', 'dim')}")
         print(cfg_file.read_text())
         return
-    registry = _ask("registry URL (or 'local')", "https://github.com/giordanocardillo/eif-library")
-    config   = {"registry": registry}
-    cfg_file.write_text(json.dumps(config, indent=2) + "\n")
+    cfg_file.write_text(json.dumps({"registry": "https://github.com/giordanocardillo/eif-library"}, indent=2) + "\n")
     print(f"{_em('✅')}created   {_arr()} {_c(str(cfg_file), 'cyan')}")
 
 
