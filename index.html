@@ -840,7 +840,7 @@
   <p class="section-label reveal">Package management</p>
   <h2 class="section-title reveal">Packages</h2>
   <p class="section-body reveal">
-    <code>eif package</code> is EIF's package manager — like npm, but for infrastructure components.
+    <code>eif package</code> is EIF's package manager for infrastructure components.
     <strong>Packages are pre-built molecules from the registry.</strong> Atoms are never installed directly — they are bundled automatically
     as dependencies when their parent molecule is downloaded.
     Install is explicit: nothing downloads automatically.
@@ -883,7 +883,7 @@
 <span class="t-ok">↓</span>  <span class="t-path">aws/single-page-application@3.0.0  installing...</span>
 <span class="t-ok">✓</span>  <span class="t-path">aws/single-page-application@3.0.0  installed</span>
 
-<span class="t-dim"># after cloning a project — explicit install like npm install</span>
+<span class="t-dim"># after cloning a project — install all pinned packages</span>
 <span class="t-cmd">$ eif package install</span>
 <span class="t-ok">✓</span>  <span class="t-path">aws/db@1.2.0            already cached</span>
 <span class="t-dl">↓</span>  <span class="t-path">aws/spa@3.0.0           downloading...</span>  <span class="t-ok">done</span>
@@ -926,7 +926,7 @@
   <p class="section-label reveal">Developer experience</p>
   <h2 class="section-title reveal">Scaffold commands</h2>
   <p class="section-body reveal">
-    <code>eif init [folder]</code> scaffolds a new project in seconds — pass a folder name and it is created automatically, just like <code>npm init</code>. <code>eif new</code> adds atoms, molecules, and matters.
+    <code>eif init [folder]</code> scaffolds a new project in seconds — pass a folder name and it is created automatically. <code>eif new</code> adds atoms, molecules, and matters.
     <code>eif remove</code> deletes them with a confirmation prompt. All commands are fully interactive.
   </p>
 
