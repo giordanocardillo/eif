@@ -2704,7 +2704,7 @@ def _usage() -> str:
         f"  {O('F')}{b('RAMEWORK')}",
         "",
         b("  PROJECT"),
-        row("init",    "",                              "scaffold new project (providers, accounts, .gitignore)"),
+        row("init",    "[<folder>]",                    "scaffold new project (providers, accounts, .gitignore)"),
         row("init",    "backend [<pvd> <matter> <env>]","bootstrap remote state bucket"),
         row("add",     "account",                       "add an account entry to accounts.json"),
         row("list",    "providers|atoms|molecules|matters [<pvd>]", "list local components"),

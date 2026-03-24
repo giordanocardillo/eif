@@ -286,11 +286,11 @@ Then initialise a new project:
 
 ```bash
 # scaffold a new project (creates accounts.json, eif.particles.json, providers/, .gitignore, matters/)
-mkdir my-infra && cd my-infra && git init
-eif init
+eif init my-infra          # creates my-infra/ and initialises inside it
+eif init                   # initialise in the current directory
 ```
 
-`eif init` prompts for which cloud providers to include (aws / azure / gcp), writes provider templates, a pre-filled `accounts.json`, and `eif.particles.json`. Fill in your credentials in `accounts.json` before deploying.
+`eif init [folder]` prompts for which cloud providers to include (aws / azure / gcp), writes provider templates, a pre-filled `accounts.json`, and `eif.particles.json`. If a folder name is provided it is created automatically. Fill in your credentials in `accounts.json` before deploying.
 
 All `eif` commands are run from inside the project directory — `eif` finds the repo root by walking up to `accounts.json` or `eif.particles.json`.
 
