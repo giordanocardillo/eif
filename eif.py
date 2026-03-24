@@ -2032,19 +2032,31 @@ def cmd_particle_install(args: list[str]) -> None:  # noqa: ARG001
     print(f"\n{_em('✅')}{_c('done', 'bgreen', 'bold')}")
 
 
-def cmd_particle_add(args: list[str]) -> None:
-    """Add a molecule to the current matter's composition.json and install it.
+def _matter_composition(repo_root: Path) -> tuple[Path, dict] | None:
+    """Return (comp_file, comp_dict) if cwd is inside a matter, else None."""
+    cwd = Path.cwd()
+    # Look for composition.json at cwd or one level up (cwd may be matter/<provider>)
+    for candidate in (cwd / "composition.json", cwd.parent / "composition.json"):
+        if candidate.exists():
+            try:
+                return candidate, json.loads(candidate.read_text())
+            except json.JSONDecodeError:
+                pass
+    return None
 
-    Usage: eif particle add <provider>/<name> <version>
+
+def cmd_particle_add(args: list[str]) -> None:
+    """Install a particle and optionally pin it in the current matter's composition.json.
+
+    Usage: eif particle add <provider>/<name> [<version>]
     """
-    repo_root   = find_repo_root(Path.cwd())
-    registry    = _require_registry(repo_root)
-    matter_path, env = _resolve_matter_and_env([])
+    repo_root = find_repo_root(Path.cwd())
+    registry  = _require_registry(repo_root)
 
     if len(args) >= 2:
         source, version = args[0], args[1]
     elif len(args) == 1:
-        source  = args[0]
+        source = args[0]
         if "/" not in source:
             sys.exit("❌  ERROR: source must be <provider>/<name>  e.g. aws/db")
         provider, name = source.split("/", 1)
@@ -2060,17 +2072,17 @@ def cmd_particle_add(args: list[str]) -> None:
         sys.exit("❌  ERROR: source must be <provider>/<name>  e.g. aws/db")
     provider, name = source.split("/", 1)
 
-    # Install
+    # Always install to cache
     _install_molecule(registry, provider, name, version, repo_root)
 
-    # Update composition.json
-    comp_file = matter_path / "composition.json"
-    if not comp_file.exists():
-        sys.exit(f"❌  ERROR: composition.json not found at {comp_file}")
-    comp = json.loads(comp_file.read_text())
+    # Pin in composition.json only if we are inside a matter
+    result = _matter_composition(repo_root)
+    if result is None:
+        print(f"{_c('  tip: run inside a matter directory to pin to composition.json', 'dim')}")
+        return
 
-    # Check if already present
-    existing = next((m for m in comp["molecules"] if m["source"] == source), None)
+    comp_file, comp = result
+    existing = next((m for m in comp.get("molecules", []) if m["source"] == source), None)
     if existing:
         old_ver = existing["version"]
         existing["version"] = version
@@ -2078,9 +2090,9 @@ def cmd_particle_add(args: list[str]) -> None:
         print(f"{_em('✅')}updated   {_c(source, 'cyan')} {_c(old_ver, 'yellow')} {_arr()} {_c(version, 'bgreen', 'bold')}")
     else:
         mol_name = name.replace("-", "_")
-        comp["molecules"].append({"name": mol_name, "source": source, "version": version})
+        comp.setdefault("molecules", []).append({"name": mol_name, "source": source, "version": version})
         comp_file.write_text(json.dumps(comp, indent=2) + "\n")
-        print(f"{_em('✅')}added     {_c(source, 'cyan')}@{_c(version, 'bgreen', 'bold')}")
+        print(f"{_em('✅')}pinned    {_c(source, 'cyan')}@{_c(version, 'bgreen', 'bold')} {_c('→ composition.json', 'dim')}")
 
 
 def cmd_particle_remove(args: list[str]) -> None:
