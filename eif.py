@@ -2573,11 +2573,11 @@ def cmd_package_outdated(args: list[str]) -> None:  # noqa: ARG001
 
 def cmd_package(args: list[str]) -> None:
     SUBS = {
-        "install":  cmd_package_install,
-        "remove":   cmd_package_remove,
-        "update":   cmd_package_update,
-        "list":     cmd_package_list,
-        "outdated": cmd_package_outdated,
+        "install":  cmd_package_install,  "i":  cmd_package_install,
+        "remove":   cmd_package_remove,   "rm": cmd_package_remove,
+        "update":   cmd_package_update,   "up": cmd_package_update,
+        "list":     cmd_package_list,     "ls": cmd_package_list,
+        "outdated": cmd_package_outdated, "od": cmd_package_outdated,
     }
     if not args or args[0] not in SUBS:
         sys.exit(
@@ -2799,6 +2799,7 @@ def main() -> None:
         "init":      cmd_init,
         "package":  cmd_package,
         "packages": cmd_package,
+        "pkg":      cmd_package,
         "cache":     cmd_cache,
     }
 
