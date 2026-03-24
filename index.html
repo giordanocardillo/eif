@@ -929,13 +929,15 @@
   <p class="section-label reveal">Developer experience</p>
   <h2 class="section-title reveal">Scaffold commands</h2>
   <p class="section-body reveal">
-    <code>eif init</code> scaffolds a new project in seconds. <code>eif new</code> adds atoms, molecules, and matters.
+    <code>eif init [folder]</code> scaffolds a new project in seconds — pass a folder name and it is created automatically, just like <code>npm init</code>. <code>eif new</code> adds atoms, molecules, and matters.
     <code>eif remove</code> deletes them with a confirmation prompt. All commands are fully interactive.
   </p>
 
   <div class="file-tree reveal" style="margin-top:48px;">
 <pre>
-<span class="ft-comment"># initialise a new project — select providers, creates accounts.json + provider templates</span>
+<span class="ft-comment"># initialise in a new folder (created automatically)</span>
+<span style="color:var(--accent)">eif init my-infra</span>
+<span class="ft-comment"># or initialise in the current directory</span>
 <span style="color:var(--accent)">eif init</span>
 <span class="ft-comment">  ◻ aws   ◻ azure   ◻ gcp  (space to select)</span>
 <span class="ft-comment">  registry URL: https://github.com/giordanocardillo/eif-library</span>
