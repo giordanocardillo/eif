@@ -390,7 +390,7 @@ eif package outdated                  # show available updates across all matter
 eif package remove aws/db
 ```
 
-`eif.project.json` is the project manifest (like `package.json`). It contains the project name and, optionally, a registry override. The registry defaults to `https://github.com/giordanocardillo/eif-library` — no configuration needed. To use a different registry, add it explicitly:
+`eif.project.json` is the project manifest. It contains the project name and, optionally, a registry override. The registry defaults to `https://github.com/giordanocardillo/eif-library` — no configuration needed. To use a different registry, add it explicitly:
 
 ```json
 {
