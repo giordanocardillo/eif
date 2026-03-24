@@ -366,7 +366,7 @@ eif add account
 
 ### Manage packages
 
-`eif package` downloads molecules from a registry into a local `eif_packages/` cache (gitignored). This is an explicit step — like `npm install`.
+`eif package` downloads molecules from a registry into a local `eif_packages/` cache (gitignored). Install is explicit — nothing downloads automatically.
 
 ```bash
 # install a specific molecule (+ pin in composition.json if run inside a matter)
