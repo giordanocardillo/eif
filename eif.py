@@ -2312,7 +2312,7 @@ def cmd_particle_install(args: list[str]) -> None:  # noqa: ARG001
         print(f"{_c('no composition.json files found', 'dim')}")
         return
 
-    print(f"{_em('📦')}installing molecules {_arr()} {_c(registry, 'dim')}  {_c('(atoms bundled automatically)', 'dim')}\n")
+    print(f"{_em('📦')}installing particles {_arr()} {_c(registry, 'dim')}  {_c('(atoms bundled automatically)', 'dim')}\n")
 
     seen: set = set()
     mols_to_install = []
