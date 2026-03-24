@@ -2673,38 +2673,69 @@ def cmd_list(args: list[str]) -> None:
                 print(f"{_c(matter.name, 'cyan'):<{40 + (9 if _IS_TTY else 0)}}  {_c(' '.join(providers), 'dim')}")
 
 
-USAGE = (
-    "Usage:\n"
-    "  eif version\n"
-    "  eif list providers|atoms|molecules|matters  [<provider>]\n"
-    "  eif render   [<provider> <matter> <env>]\n"
-    "  eif preview atom     [<provider> <category/name> [<from> <to>]]\n"
-    "  eif preview molecule [<provider> <name>         [<from> <to>]]\n"
-    "  eif preview matter   [<provider> <matter> <env>]\n"
-    "  eif scan     [<provider> <matter> <env>]\n"
-    "  eif plan     [<provider> <matter> <env>]  [--scan]\n"
-    "  eif apply    [<provider> <matter> <env>]  [--scan]\n"
-    "  eif destroy  [<provider> <matter> <env>]\n"
-    "  eif rollback [<provider> <matter> <env>]\n"
-    "  eif init\n"
-  "  eif init backend [<provider> <matter> <env>]\n"
-    "  eif add account\n"
-    "  eif new atom     [<name> [<provider> [<category>]]]\n"
-    "  eif new molecule [<name> [<provider> [<category/atom>,...]]]\n"
-    "  eif new matter   [<name> [<provider> [<molecule>,...  ]]]\n"
-    "  eif particle init\n"
-    "  eif particle install\n"
-    "  eif particle add <provider>/<name> [<version>]\n"
-    "  eif particle remove <provider>/<name>\n"
-    "  eif particle update [<provider>/<name>]  [--safe]\n"
-    "  eif particle list\n"
-    "  eif particle outdated\n"
-    "  (all positional args optional — missing ones are prompted interactively)\n"
-    "  (--safe  skips breaking major-version bumps during eif particle update)\n"
-    "  (--scan  auto-runs trivy if installed; without it, plan/apply prompt interactively)\n"
-    "  (eif preview shows interface diffs and flags breaking changes before update)\n"
-    "  (eif particle init  creates eif.particles.json with registry config)"
-)
+def _usage() -> str:
+    b  = lambda s: f"\033[1m{s}\033[0m"       # bold
+    d  = lambda s: f"\033[2m{s}\033[0m"       # dim
+    c  = lambda s: f"\033[96m{s}\033[0m"      # cyan
+    g  = lambda s: f"\033[92m{s}\033[0m"      # green
+    y  = lambda s: f"\033[93m{s}\033[0m"      # yellow
+    p  = lambda s: f"\033[35m{s}\033[0m"      # purple (particles)
+
+    def row(cmd, args, desc):
+        return f"  {g(b('eif'))} {b(cmd):<28} {c(args):<42} {d(desc)}"
+
+    def sub(cmd, sub_, args, desc):
+        return f"  {g(b('eif'))} {b(cmd)} {y(b(sub_)):<24} {c(args):<38} {d(desc)}"
+
+    def psub(sub_, args, desc):
+        return f"  {g(b('eif'))} {p(b('particle'))} {p(sub_):<18} {c(args):<34} {d(desc)}"
+
+    lines = [
+        b("EIF — Elemental Infrastructure Framework"),
+        "",
+        b("  PROJECT"),
+        row("init",    "",                              "scaffold new project (providers, accounts, .gitignore)"),
+        row("init",    "backend [<pvd> <matter> <env>]","bootstrap remote state bucket"),
+        row("add",     "account",                       "add an account entry to accounts.json"),
+        row("list",    "providers|atoms|molecules|matters [<pvd>]", "list local components"),
+        row("version", "",                              "print eif version"),
+        "",
+        b("  AUTHORING"),
+        sub("new",    "atom",     "[<name> [<pvd> [<category>]]]",       "scaffold a new atom"),
+        sub("new",    "molecule", "[<name> [<pvd> [<atoms>]]]",           "scaffold a new molecule"),
+        sub("new",    "matter",   "[<name> [<pvd> [<molecules>]]]",       "scaffold a new matter"),
+        sub("remove", "atom",     "[<pvd> <category> <name>]",            "delete a local atom"),
+        sub("remove", "molecule", "[<pvd> <name>]",                       "delete a local molecule"),
+        sub("remove", "matter",   "[<pvd> <name>]",                       "delete a local matter"),
+        "",
+        b("  PARTICLES  ") + d("(molecules from registry — atoms bundled automatically)"),
+        psub("init",     "",                            "create eif.particles.json"),
+        psub("install",  "",                            "install all pinned molecules"),
+        psub("add",      "<pvd>/<name> [<ver>]",        "download molecule (+ pin if inside matter)"),
+        psub("remove",   "<pvd>/<name>",                "unpin molecule from matter"),
+        psub("update",   "[<pvd>/<name>] [--safe]",     "update to latest, show diff, confirm"),
+        psub("outdated", "",                            "show available updates across all matters"),
+        psub("list",     "",                            "show installed molecules"),
+        row("cache",  "clean",                          "delete eif_particles/ cache"),
+        "",
+        b("  DEPLOYMENT"),
+        row("render",   "[<pvd> <matter> <env>]",       "render composition → .rendered/<env>/main.tf"),
+        row("preview",  "atom|molecule [<pvd> <name> [<from> <to>]]", "diff interface, flag breaking changes"),
+        row("preview",  "matter [<pvd> <matter> <env>]","diff all molecules against registry"),
+        row("plan",     "[<pvd> <matter> <env>] [--scan]", "render + terraform plan"),
+        row("apply",    "[<pvd> <matter> <env>] [--scan]", "render + terraform apply + snapshot"),
+        row("destroy",  "[<pvd> <matter> <env>]",       "terraform destroy"),
+        row("rollback", "[<pvd> <matter> <env>]",       "restore previous snapshot and re-apply"),
+        row("scan",     "[<pvd> <matter> <env>]",       "trivy vulnerability scan"),
+        "",
+        d("  All positional args are optional — missing ones are prompted interactively."),
+        d("  --safe  skips breaking major-version bumps during particle update."),
+        d("  --scan  auto-runs trivy; without it, plan/apply prompt if trivy is installed."),
+    ]
+    return "\n".join(lines)
+
+
+USAGE = _usage()
 
 def main() -> None:
     args = sys.argv[1:]
