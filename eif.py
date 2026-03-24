@@ -1218,7 +1218,11 @@ def cmd_preview_molecule(args: list[str]) -> None:
 
 def cmd_preview_matter(args: list[str]) -> None:
     matter_path, env = _resolve_matter_and_env(args)
-    _, composition, _, repo_root, _ = load_inputs(matter_path, env)
+    repo_root       = find_repo_root(matter_path)
+    comp_file       = matter_path / "composition.json"
+    if not comp_file.exists():
+        sys.exit(f"❌  ERROR: composition.json not found at {comp_file}")
+    composition = json.loads(comp_file.read_text())
 
     provider    = matter_path.name
     matter_name = matter_path.parent.name
