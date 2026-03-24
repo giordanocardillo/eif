@@ -20,7 +20,7 @@
     --atom: #4af0c4;
     --molecule: #3a8fff;
     --matter: #f0884a;
-    --particle: #a78bfa;
+    --package: #a78bfa;
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -383,11 +383,11 @@
   .molecule .h-card-example span.hi { color: var(--molecule); }
   .matter .h-card-example span.hi { color: var(--matter); }
 
-  .h-card.particle::before { background: var(--particle); }
-  .h-card.particle:hover { border-color: rgba(167,139,250,0.4); }
-  .particle .h-card-num { color: var(--particle); }
-  .particle .h-card-title { color: var(--particle); }
-  .particle .h-card-example span.hi { color: var(--particle); }
+  .h-card.package::before { background: var(--package); }
+  .h-card.package:hover { border-color: rgba(167,139,250,0.4); }
+  .package .h-card-num { color: var(--package); }
+  .package .h-card-title { color: var(--package); }
+  .package .h-card-example span.hi { color: var(--package); }
 
   /* ── TERMINAL BLOCK ── */
   .terminal {
@@ -397,13 +397,13 @@
     white-space: pre;
     background: #020408;
     border: 1px solid var(--border);
-    border-top: 2px solid var(--particle);
+    border-top: 2px solid var(--package);
     padding: 28px 32px;
     margin-top: 48px;
     border-radius: 2px;
     overflow-x: auto;
   }
-  .t-cmd  { color: var(--particle); }
+  .t-cmd  { color: var(--package); }
   .t-ok   { color: var(--atom); }
   .t-dl   { color: var(--molecule); }
   .t-warn { color: var(--accent3); }
@@ -610,7 +610,7 @@
     <li><a href="#hierarchy">Hierarchy</a></li>
     <li><a href="#providers">Providers</a></li>
     <li><a href="#versioning">Versioning</a></li>
-    <li><a href="#particles" style="color:var(--particle)">Particles</a></li>
+    <li><a href="#packages" style="color:var(--package)">Packages</a></li>
     <li><a href="#scaffolding">Scaffold</a></li>
     <li><a href="#state">State</a></li>
     <li><a href="#structure">Structure</a></li>
@@ -653,7 +653,7 @@
     <a href="#hierarchy" class="btn btn-primary">Explore the Model</a>
     <a href="#structure" class="btn btn-secondary">View Structure →</a>
   </div>
-  <span class="code-pill">eif particle install &amp;&amp; eif apply aws three-tier-app dev</span>
+  <span class="code-pill">eif package install &amp;&amp; eif apply aws three-tier-app dev</span>
 </div>
 
 <div class="divider"></div>
@@ -826,8 +826,8 @@
 <span style="color:var(--accent)">eif preview</span> molecule aws db 1.2.0 2.0.0
 
 <span class="ft-comment"># update with interactive diff + confirmation</span>
-<span style="color:var(--accent)">eif particle</span> update aws/db
-<span style="color:var(--accent)">eif particle</span> update --safe          <span class="ft-comment"># skip major bumps</span>
+<span style="color:var(--accent)">eif package</span> update aws/db
+<span style="color:var(--accent)">eif package</span> update --safe          <span class="ft-comment"># skip major bumps</span>
 </pre>
   </div>
 </section>
@@ -835,18 +835,18 @@
 <div class="divider"></div>
 
 <!-- PARTICLES -->
-<section id="particles">
+<section id="packages">
   <p class="section-label reveal">Package management</p>
-  <h2 class="section-title reveal">Particles</h2>
+  <h2 class="section-title reveal">Packages</h2>
   <p class="section-body reveal">
-    <code>eif particle</code> is EIF's package manager — like npm, but for infrastructure components.
-    <strong>Particles are molecules.</strong> Atoms are never installed directly — they are bundled automatically
+    <code>eif package</code> is EIF's package manager — like npm, but for infrastructure components.
+    <strong>Packages are pre-built molecules from the registry.</strong> Atoms are never installed directly — they are bundled automatically
     as dependencies when their parent molecule is downloaded.
     Install is explicit: nothing downloads automatically.
   </p>
 
   <div class="hierarchy" style="grid-template-columns: repeat(2, 1fr); margin-top: 64px;">
-    <div class="h-card particle reveal">
+    <div class="h-card package reveal">
       <p class="h-card-num">MANIFEST</p>
       <h3 class="h-card-title" style="font-size:1.2rem;">eif.project.json</h3>
       <p class="h-card-desc">Project manifest — like <code>package.json</code>. Contains the project name and an optional registry override. Registry defaults to eif-library.</p>
@@ -857,12 +857,12 @@
         <span>}</span>
       </div>
     </div>
-    <div class="h-card particle reveal">
+    <div class="h-card package reveal">
       <p class="h-card-num">CACHE</p>
-      <h3 class="h-card-title" style="font-size:1.2rem;">eif_particles/</h3>
+      <h3 class="h-card-title" style="font-size:1.2rem;">eif_packages/</h3>
       <p class="h-card-desc">Local store of downloaded molecules and their bundled atom dependencies. Gitignored. Shared across all matters in the project.</p>
       <div class="h-card-example">
-        <span>eif_particles/</span>
+        <span>eif_packages/</span>
         <span class="hi">├── atoms/aws/storage/rds/1.0.0/</span>
         <span class="hi">└── molecules/aws/db/1.2.0/</span>
         <span style="color:#3a4a6a">         └── main.tf · variables.tf</span>
@@ -883,17 +883,17 @@
 <span class="t-ok">✓</span>  <span class="t-path">aws/single-page-application@3.0.0  installed</span>
 
 <span class="t-dim"># after cloning a project — explicit install like npm install</span>
-<span class="t-cmd">$ eif particle install</span>
+<span class="t-cmd">$ eif package install</span>
 <span class="t-ok">✓</span>  <span class="t-path">aws/db@1.2.0            already cached</span>
 <span class="t-dl">↓</span>  <span class="t-path">aws/spa@3.0.0           downloading...</span>  <span class="t-ok">done</span>
 
 <span class="t-dim"># check for updates across all matters</span>
-<span class="t-cmd">$ eif particle outdated</span>
+<span class="t-cmd">$ eif package outdated</span>
 <span class="t-warn">⚠</span>  <span class="t-path">aws/db   1.2.0 → 1.3.0 available</span>
 <span class="t-warn">⚠</span>  <span class="t-path">aws/spa  3.0.0 → 4.0.0 available</span>
 
 <span class="t-dim"># update with diff preview + confirmation</span>
-<span class="t-cmd">$ eif particle update aws/db</span>
+<span class="t-cmd">$ eif package update aws/db</span>
 <span class="t-dim">  + var  read_replica_count   number  (optional)</span>
 <span class="t-dim">  + out  replica_endpoints</span>
 <span class="t-dim">update aws/db 1.2.0 → 1.3.0? (Y/n)</span> <span class="t-ok">yes</span>
@@ -903,16 +903,16 @@
 <span class="t-cmd">$ eif render aws my-app dev</span>
 <span class="t-ok">🔧</span> <span class="t-path">rendered  → .rendered/dev/main.tf</span>
 <span class="t-warn">  ⚠  aws/spa  3.0.0 → 4.0.0 available</span>
-<span class="t-dim">  run: eif particle update</span>
+<span class="t-dim">  run: eif package update</span>
   </div>
 
   <div class="philosophy reveal" style="margin-top:32px;">
     <p class="philosophy-quote" style="font-size:0.9rem;font-weight:400;line-height:1.9;color:var(--text-muted);">
       If a molecule is missing when rendering, <code>eif</code> <strong style="color:var(--text)">fails fast</strong> with a clear install message.<br>
       Atom dependencies are <strong style="color:var(--text)">bundled automatically</strong> when a molecule is installed — their relative paths
-      are preserved in <code>eif_particles/</code> so Terraform resolves them without modification.<br><br>
-      Local molecules (authored but not yet published) coexist alongside registry particles —
-      the renderer checks <code>eif_particles/</code> first, then falls back to local <code>molecules/</code>.
+      are preserved in <code>eif_packages/</code> so Terraform resolves them without modification.<br><br>
+      Local molecules (authored but not yet published) coexist alongside registry packages —
+      the renderer checks <code>eif_packages/</code> first, then falls back to local <code>molecules/</code>.
     </p>
     <span class="philosophy-attr">One registry. One cache. No lock file — the composition is the lock.</span>
   </div>
@@ -963,7 +963,7 @@
       Providers are <strong style="color:var(--text)">auto-detected</strong> from the <span style="font-family:'Space Mono',monospace;color:var(--atom)">providers/</span> directory —
       no hardcoded list, no config needed.
     </p>
-    <span class="philosophy-attr">New providers are automatically available to eif new. eif cache clean wipes eif_particles/ safely.</span>
+    <span class="philosophy-attr">New providers are automatically available to eif new. eif cache clean wipes eif_packages/ safely.</span>
   </div>
 </section>
 
@@ -1032,7 +1032,7 @@
 <pre>
 <span class="ft-dir">eif/</span>                            <span class="ft-comment"># this repo — CLI tool only</span>
 <span class="ft-comment">│</span>
-<span class="ft-file">├── eif.py</span>                     <span class="ft-comment"># renderer, lifecycle, scaffold, particle CLI</span>
+<span class="ft-file">├── eif.py</span>                     <span class="ft-comment"># renderer, lifecycle, scaffold, package CLI</span>
 <span class="ft-file">├── pyproject.toml</span>              <span class="ft-comment"># Python project (uv / hatchling)</span>
 <span class="ft-comment">│</span>
 <span class="ft-file">└── examples/</span>                   <span class="ft-comment"># Reference implementation</span>
@@ -1055,9 +1055,9 @@
 <span class="ft-comment">│</span>
 <span class="ft-file">├── accounts.json</span>              <span class="ft-comment"># env → cloud account config</span>
 <span class="ft-file">├── eif.project.json</span>         <span class="ft-comment"># project manifest (name + optional registry)</span>
-<span style="color:var(--particle)">├── eif_particles/</span>             <span class="ft-comment"># gitignored — downloaded atoms + molecules</span>
-<span style="color:var(--particle)">│   ├── atoms/&lt;cloud&gt;/&lt;cat&gt;/&lt;name&gt;/1.0.0/</span>
-<span style="color:var(--particle)">│   └── molecules/&lt;cloud&gt;/&lt;name&gt;/1.2.0/</span>
+<span style="color:var(--package)">├── eif_packages/</span>             <span class="ft-comment"># gitignored — downloaded atoms + molecules</span>
+<span style="color:var(--package)">│   ├── atoms/&lt;cloud&gt;/&lt;cat&gt;/&lt;name&gt;/1.0.0/</span>
+<span style="color:var(--package)">│   └── molecules/&lt;cloud&gt;/&lt;name&gt;/1.2.0/</span>
 <span class="ft-comment">│</span>
 <span class="ft-file">├── providers/</span>                  <span class="ft-comment"># Pluggable cloud provider templates</span>
 <span class="ft-file">│   ├── aws/provider.tf.j2 · backend.tf.j2</span>
