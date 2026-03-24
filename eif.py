@@ -5,7 +5,7 @@ CLI renderer, scaffolding, and deployment lifecycle.
 
 Commands:
     eif render   [<provider> <matter> <env>]  Render composition + env → .rendered/<env>/main.tf
-    eif preview  [<provider> <matter> <env>]  Diff molecule interface changes, flag breaking changes
+    eif diff  [<provider> <matter> <env>]  Diff molecule interface changes, flag breaking changes
     eif plan     [<provider> <matter> <env>]  Render and run terraform plan           [--scan]
     eif apply    [<provider> <matter> <env>]  Render, run terraform apply, snapshot   [--scan]
     eif destroy  [<provider> <matter> <env>]  Run terraform destroy on the rendered output
@@ -27,7 +27,7 @@ Install as a shell command:
 
 Examples:
     eif render                                       # fully interactive
-    eif preview  aws three-tier-app dev              # check upgrade safety before updating
+    eif diff  aws three-tier-app dev              # check upgrade safety before updating
     eif render   aws three-tier-app dev              # fully non-interactive
     eif package update
     eif plan     aws three-tier-app dev
@@ -326,7 +326,7 @@ def _remote_list_molecules(registry: str, provider: str) -> list[dict]:
     return result
 
 
-# ── Particle store helpers ─────────────────────────────────────────────────────
+# ── Package store helpers ─────────────────────────────────────────────────────
 
 def _packages_dir(repo_root: Path) -> Path:
     return repo_root / "eif_packages"
@@ -1068,7 +1068,7 @@ def _diff_interface(old_path: Path, new_path: Path) -> list[dict]:
     return changes
 
 
-# ── Commands (preview) ─────────────────────────────────────────────────────────
+# ── Commands (diff) ─────────────────────────────────────────────────────────
 
 def _print_diff(changes: list[dict]) -> None:
     """Render a list of change records as colored diff rows."""
@@ -1089,10 +1089,10 @@ def _print_diff(changes: list[dict]) -> None:
             print(_diff_row("-", f"out  {name}", "bg_red"))
 
 
-def _preview_component(label: str, path: str, component_dir: Path,
+def _diff_component(label: str, path: str, component_dir: Path,
                        consumer_msg: str,
                        from_ver: str | None = None, to_ver: str | None = None) -> None:
-    """Shared renderer for atom and molecule single-component previews."""
+    """Shared renderer for atom and molecule single-component diffs."""
     versions = sorted(
         [d.name for d in component_dir.iterdir() if d.is_dir() and _is_semver(d.name)],
         key=_semver_key,
@@ -1115,7 +1115,7 @@ def _preview_component(label: str, path: str, component_dir: Path,
                        if is_breaking else _c("non-breaking", "bgreen"))
     ver_range       = f"{_c(current, 'yellow')} {_arr()} {_c(latest, 'bgreen', 'bold')}"
 
-    print(f"\n{_em('👁️')} {_c(label + ' preview', 'bcyan', 'bold')}  {_arr()} {_c(path, 'cyan')}\n")
+    print(f"\n{_em('👁️')} {_c(label + ' diff', 'bcyan', 'bold')}  {_arr()} {_c(path, 'cyan')}\n")
     print(f"  {_c(path, 'cyan', 'bold'):<30} {ver_range}  [{status}]\n")
 
     if not changes:
@@ -1131,7 +1131,7 @@ def _preview_component(label: str, path: str, component_dir: Path,
         print(f"{_em('✅')}{_c('no breaking changes', 'bgreen', 'bold')}")
 
 
-def _preview_component_remote(label: str, path: str, remote_rel: str,
+def _diff_component_remote(label: str, path: str, remote_rel: str,
                               consumer_msg: str, registry: str,
                               from_ver: str | None, to_ver: str | None) -> None:
     """Preview a component that lives in the remote registry."""
@@ -1169,7 +1169,7 @@ def _preview_component_remote(label: str, path: str, remote_rel: str,
                        if is_breaking else _c("non-breaking", "bgreen"))
         ver_range   = f"{_c(current, 'yellow')} {_arr()} {_c(latest, 'bgreen', 'bold')}"
 
-        print(f"\n{_em('👁️')} {_c(label + ' preview', 'bcyan', 'bold')}  "
+        print(f"\n{_em('👁️')} {_c(label + ' diff', 'bcyan', 'bold')}  "
               f"{_arr()} {_c(path, 'cyan')}  {_c('[remote]', 'dim')}\n")
         print(f"  {_c(path, 'cyan', 'bold'):<30} {ver_range}  [{status}]\n")
 
@@ -1223,7 +1223,7 @@ def _parse_versions(args: list[str], name_idx: int) -> tuple[str | None, str | N
     return from_ver, to_ver
 
 
-def cmd_preview_atom(args: list[str]) -> None:
+def cmd_diff_atom(args: list[str]) -> None:
     provider, repo_root = _resolve_provider(args)
     config   = load_config(repo_root)
     registry = config.get("registry", "local")
@@ -1247,7 +1247,7 @@ def cmd_preview_atom(args: list[str]) -> None:
     if not atom_dir.is_dir():
         if registry == "local":
             sys.exit(f"❌  ERROR: atom not found at {atom_dir}")
-        _preview_component_remote(
+        _diff_component_remote(
             "atom", f"{provider}/{category}/{name}",
             f"atoms/{provider}/{category}/{name}",
             "molecules that use this atom may need to be updated",
@@ -1255,12 +1255,12 @@ def cmd_preview_atom(args: list[str]) -> None:
         )
         return
 
-    _preview_component("atom", f"{provider}/{category}/{name}", atom_dir,
+    _diff_component("atom", f"{provider}/{category}/{name}", atom_dir,
                        "molecules that use this atom may need to be updated",
                        from_ver, to_ver)
 
 
-def cmd_preview_molecule(args: list[str]) -> None:
+def cmd_diff_molecule(args: list[str]) -> None:
     provider, repo_root = _resolve_provider(args)
     config   = load_config(repo_root)
     registry = config.get("registry", "local")
@@ -1280,7 +1280,7 @@ def cmd_preview_molecule(args: list[str]) -> None:
     if not mol_dir.is_dir():
         if registry == "local":
             sys.exit(f"❌  ERROR: molecule not found at {mol_dir}")
-        _preview_component_remote(
+        _diff_component_remote(
             "molecule", f"{provider}/{name}",
             f"molecules/{provider}/{name}",
             "matters that use this molecule may need to be updated",
@@ -1288,12 +1288,12 @@ def cmd_preview_molecule(args: list[str]) -> None:
         )
         return
 
-    _preview_component("molecule", f"{provider}/{name}", mol_dir,
+    _diff_component("molecule", f"{provider}/{name}", mol_dir,
                        "matters that use this molecule may need to be updated",
                        from_ver, to_ver)
 
 
-def cmd_preview_matter(args: list[str]) -> None:
+def cmd_diff_matter(args: list[str]) -> None:
     matter_path, env = _resolve_matter_and_env(args)
     repo_root       = find_repo_root(matter_path)
     comp_file       = matter_path / "composition.json"
@@ -1304,7 +1304,7 @@ def cmd_preview_matter(args: list[str]) -> None:
     provider    = matter_path.name
     matter_name = matter_path.parent.name
 
-    print(f"\n{_em('👁️')} {_c('matter preview', 'bcyan', 'bold')}  "
+    print(f"\n{_em('👁️')} {_c('matter diff', 'bcyan', 'bold')}  "
           f"{_arr()} {_c(f'{provider}/{matter_name}/{env}', 'cyan')}\n")
 
     any_upgradeable  = False
@@ -1356,7 +1356,7 @@ def cmd_preview_matter(args: list[str]) -> None:
         ver_range       = f"{_c(current, 'yellow')} {_arr()} {_c(latest, 'bgreen', 'bold')}"
 
         if is_package:
-            # Particles: version diff only — no local interface diff available
+            # Registry package: version diff only — no local interface diff available
             print(f"  {_c(mol['name'], 'cyan', 'bold'):<30} {ver_range}  "
                   f"[{_c('package update available', 'bgreen')}]")
             print(f"    {_c('run eif package update to fetch latest', 'dim')}\n")
@@ -1375,7 +1375,7 @@ def cmd_preview_matter(args: list[str]) -> None:
 
     print()
     if not any_upgradeable:
-        print(f"{_em('✅')}{_c('all components up-to-date — nothing to preview', 'green')}")
+        print(f"{_em('✅')}{_c('all components up-to-date — nothing to diff', 'green')}")
     elif overall_breaking:
         print(f"{_em('💥')}{_c('BREAKING changes detected', 'bred', 'bold')}\n"
               f"   update the matter template and env vars before running "
@@ -1385,18 +1385,18 @@ def cmd_preview_matter(args: list[str]) -> None:
               f"{_arr()} safe to run {_c('eif package update', 'bcyan')}")
 
 
-def cmd_preview(args: list[str]) -> None:
-    SUBS = {"atom": cmd_preview_atom, "atoms": cmd_preview_atom, "molecule": cmd_preview_molecule, "molecules": cmd_preview_molecule, "matter": cmd_preview_matter, "matters": cmd_preview_matter}
+def cmd_diff(args: list[str]) -> None:
+    SUBS = {"atom": cmd_diff_atom, "atoms": cmd_diff_atom, "molecule": cmd_diff_molecule, "molecules": cmd_diff_molecule, "matter": cmd_diff_matter, "matters": cmd_diff_matter}
 
     if args and args[0] in SUBS:
         return SUBS[args[0]](args[1:])
 
     if args:
         # positional args with no matching subcommand → assume matter shorthand
-        return cmd_preview_matter(args)
+        return cmd_diff_matter(args)
 
-    # fully interactive — ask what level to preview
-    sub = _choose("preview", ["atom", "molecule", "matter"])
+    # fully interactive — ask what level to diff
+    sub = _choose("diff", ["atom", "molecule", "matter"])
     SUBS[sub]([])
 
 
@@ -2323,10 +2323,55 @@ def _require_registry(repo_root: Path) -> str:
     return registry
 
 
-def cmd_package_install(args: list[str]) -> None:  # noqa: ARG001
+def cmd_package_install(args: list[str]) -> None:
     repo_root = find_repo_root(Path.cwd())
     registry  = _require_registry(repo_root)
 
+    # ── With a package name: install specific package (like npm install <pkg>) ──
+    if args:
+        # Support aws/db@1.2.0 syntax
+        if "@" in args[0]:
+            args = args[0].split("@", 1) + args[1:]
+
+        if len(args) >= 2:
+            source, version = args[0], args[1]
+            if "/" not in source:
+                sys.exit("❌  ERROR: source must be <provider>/<name>  e.g. aws/db")
+            provider, name = source.split("/", 1)
+        else:
+            source = args[0]
+            if "/" not in source:
+                sys.exit("❌  ERROR: source must be <provider>/<name>  e.g. aws/db")
+            provider, name = source.split("/", 1)
+            versions = _remote_list_versions(registry, f"molecules/{provider}/{name}")
+            if not versions:
+                sys.exit(f"❌  ERROR: no versions found for {source} in registry")
+            version = versions[-1]
+            print(f"  {_c('latest', 'dim')} {_arr()} {_c(version, 'bgreen')}")
+
+        _install_molecule(registry, provider, name, version, repo_root)
+
+        # Pin in composition.json if inside a matter
+        result = _matter_composition(repo_root)
+        if result is None:
+            print(f"{_c('  tip: run inside a matter directory to pin to composition.json', 'dim')}")
+            return
+
+        comp_file, comp = result
+        existing = next((m for m in comp.get("molecules", []) if m["source"] == source), None)
+        if existing:
+            old_ver = existing["version"]
+            existing["version"] = version
+            comp_file.write_text(json.dumps(comp, indent=2) + "\n")
+            print(f"{_em('✅')}updated   {_c(source, 'cyan')} {_c(old_ver, 'yellow')} {_arr()} {_c(version, 'bgreen', 'bold')}")
+        else:
+            mol_name = name.replace("-", "_")
+            comp.setdefault("molecules", []).append({"name": mol_name, "source": source, "version": version})
+            comp_file.write_text(json.dumps(comp, indent=2) + "\n")
+            print(f"{_em('✅')}pinned    {_c(source, 'cyan')}@{_c(version, 'bgreen', 'bold')} {_c('→ composition.json', 'dim')}")
+        return
+
+    # ── No args: install all pinned packages + check remote for upgrades ──
     compositions = _all_compositions(repo_root)
     if not compositions:
         print(f"{_c('no composition.json files found', 'dim')}")
@@ -2335,6 +2380,7 @@ def cmd_package_install(args: list[str]) -> None:  # noqa: ARG001
     print(f"{_em('📦')}installing packages {_arr()} {_c(registry, 'dim')}\n")
 
     seen: set = set()
+    all_mols: list = []
     mols_to_install = []
     for _, comp in compositions:
         for mol in comp.get("molecules", []):
@@ -2342,6 +2388,7 @@ def cmd_package_install(args: list[str]) -> None:  # noqa: ARG001
             version = mol.get("version", "")
             if not source or not version or "/" not in source:
                 continue
+            all_mols.append(mol)
             key = (source, version)
             if key in seen:
                 continue
@@ -2355,6 +2402,12 @@ def cmd_package_install(args: list[str]) -> None:  # noqa: ARG001
 
     print(f"\n{_em('✅')}{_c('done', 'bgreen', 'bold')}")
 
+    # Check remote registry for available upgrades (like npm)
+    outdated = _check_outdated(all_mols, registry)
+    if outdated:
+        print(f"\n  {_c(f'{len(outdated)} package(s) have updates available', 'yellow')} "
+              f"{_arr()} run {_c('eif package update', 'bcyan')} to upgrade")
+
 
 def _matter_composition(repo_root: Path) -> tuple[Path, dict] | None:
     """Return (comp_file, comp_dict) if cwd is inside a matter, else None."""
@@ -2367,59 +2420,6 @@ def _matter_composition(repo_root: Path) -> tuple[Path, dict] | None:
             except json.JSONDecodeError:
                 pass
     return None
-
-
-def cmd_package_add(args: list[str]) -> None:
-    """Install a package and optionally pin it in the current matter's composition.json.
-
-    Usage: eif package add <provider>/<name>[@<version>]
-    """
-    repo_root = find_repo_root(Path.cwd())
-    registry  = _require_registry(repo_root)
-
-    # Support aws/db@1.2.0 syntax — split off version before further parsing
-    if args and "@" in args[0]:
-        args = args[0].split("@", 1) + args[1:]
-
-    if len(args) >= 2:
-        source, version = args[0], args[1]
-        if "/" not in source:
-            sys.exit("❌  ERROR: source must be <provider>/<name>  e.g. aws/db")
-        provider, name = source.split("/", 1)
-    elif len(args) == 1:
-        source = args[0]
-        if "/" not in source:
-            sys.exit("❌  ERROR: source must be <provider>/<name>  e.g. aws/db")
-        provider, name = source.split("/", 1)
-        versions = _remote_list_versions(registry, f"molecules/{provider}/{name}")
-        if not versions:
-            sys.exit(f"❌  ERROR: no versions found for {source} in registry")
-        version = versions[-1]
-        print(f"  {_c('latest', 'dim')} {_arr()} {_c(version, 'bgreen')}")
-    else:
-        sys.exit("Usage: eif package add <provider>/<name>[@<version>]  e.g. eif package add aws/db")
-
-    # Always install to cache
-    _install_molecule(registry, provider, name, version, repo_root)
-
-    # Pin in composition.json only if we are inside a matter
-    result = _matter_composition(repo_root)
-    if result is None:
-        print(f"{_c('  tip: run inside a matter directory to pin to composition.json', 'dim')}")
-        return
-
-    comp_file, comp = result
-    existing = next((m for m in comp.get("molecules", []) if m["source"] == source), None)
-    if existing:
-        old_ver = existing["version"]
-        existing["version"] = version
-        comp_file.write_text(json.dumps(comp, indent=2) + "\n")
-        print(f"{_em('✅')}updated   {_c(source, 'cyan')} {_c(old_ver, 'yellow')} {_arr()} {_c(version, 'bgreen', 'bold')}")
-    else:
-        mol_name = name.replace("-", "_")
-        comp.setdefault("molecules", []).append({"name": mol_name, "source": source, "version": version})
-        comp_file.write_text(json.dumps(comp, indent=2) + "\n")
-        print(f"{_em('✅')}pinned    {_c(source, 'cyan')}@{_c(version, 'bgreen', 'bold')} {_c('→ composition.json', 'dim')}")
 
 
 def cmd_package_remove(args: list[str]) -> None:
@@ -2496,7 +2496,7 @@ def cmd_package_update(args: list[str]) -> None:
             continue
 
         # Show diff
-        _preview_component_remote(
+        _diff_component_remote(
             "molecule", source,
             f"molecules/{provider}/{name}",
             "update composition.json when safe",
@@ -2574,7 +2574,6 @@ def cmd_package_outdated(args: list[str]) -> None:  # noqa: ARG001
 def cmd_package(args: list[str]) -> None:
     SUBS = {
         "install":  cmd_package_install,
-        "add":      cmd_package_add,
         "remove":   cmd_package_remove,
         "update":   cmd_package_update,
         "list":     cmd_package_list,
@@ -2583,15 +2582,14 @@ def cmd_package(args: list[str]) -> None:
     if not args or args[0] not in SUBS:
         sys.exit(
             "Usage:\n"
-            "Particles are remote molecules fetched from the registry. Local molecules and atoms are authored directly.\n"
             "\n"
-            "  eif package install                       Install all pinned packages\n"
-            "  eif package add <provider>/<name>[@<ver>] Download package (+ pin if inside a matter)\n"
-            "  eif package remove <provider>/<name>      Remove package from matter\n"
-            "  eif package update [<provider>/<name>]    Update to latest (interactive diff + confirm)\n"
-            "  eif package update --safe                  Skip major-version bumps\n"
-            "  eif package list                           Show installed packages\n"
-            "  eif package outdated                       Show available updates across all matters"
+            "  eif package install                         Install all pinned packages\n"
+            "  eif package install <provider>/<name>[@ver] Download package (+ pin if inside a matter)\n"
+            "  eif package remove <provider>/<name>        Remove package from matter\n"
+            "  eif package update [<provider>/<name>]      Update to latest (interactive diff + confirm)\n"
+            "  eif package update --safe                    Skip major-version bumps\n"
+            "  eif package list                             Show installed packages\n"
+            "  eif package outdated                         Show available updates across all matters"
         )
     SUBS[args[0]](args[1:])
 
@@ -2762,8 +2760,8 @@ def _usage() -> str:
         "",
         b("  DEPLOYMENT"),
         row("render",   "[<pvd> <matter> <env>]",       "render composition → .rendered/<env>/main.tf"),
-        row("preview",  "atom|molecule [<pvd> <name> [<from> <to>]]", "diff interface, flag breaking changes"),
-        row("preview",  "matter [<pvd> <matter> <env>]","diff all packages against registry"),
+        row("diff",     "atom|molecule [<pvd> <name> [<from> <to>]]", "diff interface, flag breaking changes"),
+        row("diff",     "matter [<pvd> <matter> <env>]","diff all packages against registry"),
         row("plan",     "[<pvd> <matter> <env>] [--scan]", "render + terraform plan"),
         row("apply",    "[<pvd> <matter> <env>] [--scan]", "render + terraform apply + snapshot"),
         row("destroy",  "[<pvd> <matter> <env>]",       "terraform destroy"),
@@ -2789,7 +2787,7 @@ def main() -> None:
         "version":   cmd_version,
         "list":      cmd_list,
         "render":    cmd_render,
-        "preview":   cmd_preview,
+        "diff":      cmd_diff,
         "scan":      cmd_scan,
         "plan":      cmd_plan,
         "apply":     cmd_apply,

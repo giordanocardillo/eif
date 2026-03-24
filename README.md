@@ -304,29 +304,29 @@ eif render
 eif render aws three-tier-app dev
 ```
 
-### Preview upgrade safety
+### Diff upgrade safety
 
-Before updating a molecule version, use `eif preview` to inspect what changed and whether it is breaking.
+Before updating a molecule version, use `eif diff` to inspect what changed and whether it is breaking.
 
 ```bash
 # atom — diffs the atom interface (variables + outputs) between two versions
-eif preview atom aws storage/rds
-eif preview atom aws storage/rds 1.0.0 2.0.0   # explicit range
-eif preview atom                                 # fully interactive
+eif diff atom aws storage/rds
+eif diff atom aws storage/rds 1.0.0 2.0.0   # explicit range
+eif diff atom                                 # fully interactive
 
 # molecule — diffs the molecule interface between two versions
-eif preview molecule aws db
-eif preview molecule aws db 1.0.0 2.0.0
-eif preview molecule                             # fully interactive
+eif diff molecule aws db
+eif diff molecule aws db 1.0.0 2.0.0
+eif diff molecule                             # fully interactive
 
 # matter — diffs all molecules in the composition against their latest registry versions
-eif preview matter aws three-tier-app dev
-eif preview matter                               # fully interactive
+eif diff matter aws three-tier-app dev
+eif diff matter                               # fully interactive
 
-eif preview   # prompts: atom / molecule / matter
+eif diff   # prompts: atom / molecule / matter
 ```
 
-All three use git-diff style output — green for additions, red for removals, yellow for type/default changes. Breaking changes are flagged with `💥 BREAKING`. Pipe to a file for plain text: `eif preview matter aws my-app dev > report.txt`.
+All three use git-diff style output — green for additions, red for removals, yellow for type/default changes. Breaking changes are flagged with `💥 BREAKING`. Pipe to a file for plain text: `eif diff matter aws my-app dev > report.txt`.
 
 ### Full deployment lifecycle
 
@@ -368,14 +368,13 @@ eif add account
 
 `eif package` downloads molecules from a registry into a local `eif_packages/` cache (gitignored). This is an explicit step — like `npm install`.
 
-`eif package` installs molecules from a registry into a local `eif_packages/` cache (gitignored). This is an explicit step — like `npm install`.
-
 ```bash
-# download a molecule (installs to cache; also pins in composition.json if run inside a matter)
-eif package add aws/db
-eif package add aws/db 1.2.0          # or pin explicitly
+# install a specific molecule (+ pin in composition.json if run inside a matter)
+eif package install aws/db
+eif package install aws/db@1.2.0      # or pin explicitly
 
 # install all molecules referenced across all composition.json files
+# also reports if newer versions are available in the registry
 eif package install
 
 # update a molecule (shows diff, confirms, rewrites composition.json)
@@ -493,8 +492,8 @@ Rollback restores a previous rendered `main.tf` and re-applies it. Terraform com
 - [x] Snapshot history and rollback
 - [x] Backend bootstrap (`eif init backend`)
 - [x] Vulnerability scanning (`eif scan` via Trivy — opt-in via `--scan` or interactive prompt)
-- [x] Upgrade preview with breaking-change detection (`eif preview`)
-- [x] Package manager (`eif package` — install, add, update, outdated)
+- [x] Upgrade preview with breaking-change detection (`eif diff`)
+- [x] Package manager (`eif package` — install, update, outdated)
 - [x] Project manifest (`eif.project.json` — name + optional registry override)
 - [x] Outdated alerts on render/plan/apply
 - [x] Safe update mode (`eif package update --safe` — skips major bumps)
