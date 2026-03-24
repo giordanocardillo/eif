@@ -1714,11 +1714,6 @@ _ACCOUNTS_ENTRY: dict[str, dict] = {
             "aws_region": "us-east-1",
             "profile": "YOUR_AWS_CLI_PROFILE",
         },
-        "prod": {
-            "provider": "aws",
-            "aws_region": "us-east-1",
-            "assume_role_arn": "arn:aws:iam::YOUR_ACCOUNT_ID:role/YOUR_ROLE_NAME",
-        },
     },
     "azure": {
         "azure-dev": {
@@ -1752,10 +1747,8 @@ def cmd_init_project(args: list[str]) -> None:  # noqa: ARG001
 
     print(f"\n{_em('◈')} {_c('eif init', 'bgreen', 'bold')} — scaffold a new project\n")
 
-    # Provider selection (all checked by default)
-    all_providers = ["aws", "azure", "gcp"]
-    choices = [questionary.Choice(p, checked=True) for p in all_providers]
-    selected = questionary.checkbox("cloud providers to include", choices=choices).ask()
+    # Provider selection (none pre-selected)
+    selected = questionary.checkbox("cloud providers to include", choices=["aws", "azure", "gcp"]).ask()
     if not selected:
         sys.exit("aborted")
 
