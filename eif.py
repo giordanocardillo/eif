@@ -1818,9 +1818,13 @@ def cmd_init_project(args: list[str]) -> None:
     print(f"\n{_em('◈')} {_c('eif init', 'bgreen', 'bold')} — scaffold a new project\n")
 
     # Provider selection (none pre-selected)
-    selected = questionary.checkbox("cloud providers to include", choices=["aws", "azure", "gcp"]).ask()
-    if not selected:
-        sys.exit("aborted")
+    while True:
+        selected = questionary.checkbox("cloud providers to include", choices=["aws", "azure", "gcp"]).ask()
+        if selected is None:
+            sys.exit("aborted")
+        if selected:
+            break
+        print("  ⚠️  select at least one provider")
 
     # providers/ — write tf.j2 files for each selected provider
     for prov in selected:
