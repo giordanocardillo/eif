@@ -2074,15 +2074,19 @@ def cmd_new_matter(args: list[str]) -> None:
     if out.exists():
         sys.exit(f"❌  ERROR: {out.relative_to(cwd)} already exists")
 
-    # Molecule selection — prefer registry if configured
-    config    = load_config(repo_root)
-    registry  = config.get("registry", "local")
-    all_mols  = _list_molecules(provider, repo_root)  # local first
+    # Molecule selection — merge local + remote, local takes precedence on name collision
+    config   = load_config(repo_root)
+    registry = config.get("registry", "local")
+    local_mols = _list_molecules(provider, repo_root)
+    local_names = {m["name"] for m in local_mols}
 
-    if not all_mols and registry != "local":
+    remote_mols: list[dict] = []
+    if registry != "local":
         print(f"  {_c('querying registry...', 'dim')}", end="\r", flush=True)
-        all_mols = _remote_list_molecules(registry, provider)
+        remote_mols = [m for m in _remote_list_molecules(registry, provider) if m["name"] not in local_names]
         print(" " * 40, end="\r")
+
+    all_mols = local_mols + remote_mols
 
     selected_mols: list[dict] = []
     if len(args) > 2:
