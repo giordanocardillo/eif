@@ -20,7 +20,7 @@ Commands:
     eif remove molecule [<provider> <name>]
     eif remove matter   [<provider> <name>]
     eif cache  clean
-    eif particle init|install|add|remove|update|list|outdated
+    eif particle install|add|remove|update|list|outdated
 
 Install as a shell command:
     uv tool install --editable .
@@ -2595,17 +2595,6 @@ def cmd_particle_outdated(args: list[str]) -> None:  # noqa: ARG001
         print(f"\n{_c('run: eif particle update', 'dim')}")
 
 
-def cmd_particle_init(args: list[str]) -> None:  # noqa: ARG001
-    repo_root = find_repo_root(Path.cwd())
-    cfg_file  = repo_root / "eif.project.json"
-    if cfg_file.exists():
-        print(f"{_em('ℹ️')} {_c('eif.project.json already exists', 'dim')}")
-        print(cfg_file.read_text())
-        return
-    cfg_file.write_text(json.dumps({"name": repo_root.name}, indent=2) + "\n")
-    print(f"{_em('✅')}created   {_arr()} {_c(str(cfg_file), 'cyan')}")
-
-
 def cmd_particle(args: list[str]) -> None:
     SUBS = {
         "install":  cmd_particle_install,
@@ -2614,22 +2603,19 @@ def cmd_particle(args: list[str]) -> None:
         "update":   cmd_particle_update,
         "list":     cmd_particle_list,
         "outdated": cmd_particle_outdated,
-        "init":     cmd_particle_init,
     }
     if not args or args[0] not in SUBS:
         sys.exit(
             "Usage:\n"
             "Particles are molecules. Atoms are bundled automatically as dependencies.\n"
             "\n"
-            "Usage:\n"
-            "  eif particle init                          Init eif.project.json\n"
             "  eif particle install                       Install all molecules from composition files\n"
-            "  eif particle add <provider>/<name> [<ver>] Download molecule (+ pin if inside a matter)\n"
-            "  eif particle remove <provider>/<name>     Remove molecule from matter\n"
-            "  eif particle update [<provider>/<name>]   Update to latest (interactive diff + confirm)\n"
-            "  eif particle update --safe                 Skip major-version bumps\n"
-            "  eif particle list                          Show installed molecules\n"
-            "  eif particle outdated                      Show available updates across all matters"
+            "  eif particle add <provider>/<name>[@<ver>] Download molecule (+ pin if inside a matter)\n"
+            "  eif particle remove <provider>/<name>      Remove molecule from matter\n"
+            "  eif particle update [<provider>/<name>]    Update to latest (interactive diff + confirm)\n"
+            "  eif particle update --safe                  Skip major-version bumps\n"
+            "  eif particle list                           Show installed molecules\n"
+            "  eif particle outdated                       Show available updates across all matters"
         )
     SUBS[args[0]](args[1:])
 
@@ -2789,7 +2775,7 @@ def _usage() -> str:
         sub("remove", "matter",   "[<pvd> <name>]",                       "delete a local matter"),
         "",
         b("  PARTICLES  ") + d("(molecules from registry — atoms bundled automatically)"),
-        psub("init",     "",                            "create eif.project.json"),
+
         psub("install",  "",                            "install all pinned molecules"),
         psub("add",      "<pvd>/<name>[@<ver>]",         "download molecule (+ pin if inside matter)"),
         psub("remove",   "<pvd>/<name>",                "unpin molecule from matter"),
