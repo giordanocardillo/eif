@@ -822,8 +822,8 @@
   ]
 }
 
-<span class="ft-comment"># preview what would break before updating</span>
-<span style="color:var(--accent)">eif preview</span> molecule aws db 1.2.0 2.0.0
+<span class="ft-comment"># diff what would break before updating</span>
+<span style="color:var(--accent)">eif diff</span> molecule aws db 1.2.0 2.0.0
 
 <span class="ft-comment"># update with interactive diff + confirmation</span>
 <span style="color:var(--accent)">eif package</span> update aws/db
@@ -892,7 +892,7 @@
 <span class="t-warn">⚠</span>  <span class="t-path">aws/db   1.2.0 → 1.3.0 available</span>
 <span class="t-warn">⚠</span>  <span class="t-path">aws/spa  3.0.0 → 4.0.0 available</span>
 
-<span class="t-dim"># update with diff preview + confirmation</span>
+<span class="t-dim"># update with diff + confirmation</span>
 <span class="t-cmd">$ eif package update aws/db</span>
 <span class="t-dim">  + var  read_replica_count   number  (optional)</span>
 <span class="t-dim">  + out  replica_endpoints</span>
