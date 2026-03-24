@@ -401,6 +401,10 @@ def _install_atom_deps(
         atom_dest = _particles_dir(repo_root) / "atoms" / Path(*parts)
         if atom_dest.is_dir():
             continue
+        # If a local copy exists in the repo, skip the download
+        local_atom = repo_root / "atoms" / Path(*parts)
+        if local_atom.is_dir():
+            continue
         atom_plan = _collect_download_plan(registry, atom_rel, atom_dest)
         total    += len(atom_plan)
         _run_download_plan(registry, atom_plan, label, done_so_far, total)
