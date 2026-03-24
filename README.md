@@ -285,14 +285,14 @@ uv tool install --editable .
 Then initialise a new project:
 
 ```bash
-# scaffold a new project (creates accounts.json, eif.particles.json, providers/, .gitignore, matters/)
+# scaffold a new project (creates accounts.json, eif.project.json, providers/, .gitignore, matters/)
 eif init my-infra          # creates my-infra/ and initialises inside it
 eif init                   # initialise in the current directory
 ```
 
-`eif init [folder]` prompts for which cloud providers to include (aws / azure / gcp), writes provider templates, a pre-filled `accounts.json`, and `eif.particles.json`. If a folder name is provided it is created automatically. Fill in your credentials in `accounts.json` before deploying.
+`eif init [folder]` prompts for which cloud providers to include (aws / azure / gcp), writes provider templates, a pre-filled `accounts.json`, and `eif.project.json`. If a folder name is provided it is created automatically. Fill in your credentials in `accounts.json` before deploying.
 
-All `eif` commands are run from inside the project directory — `eif` finds the repo root by walking up to `accounts.json` or `eif.particles.json`.
+All `eif` commands are run from inside the project directory — `eif` finds the repo root by walking up to `accounts.json` or `eif.project.json`.
 
 ### Render only
 
@@ -391,7 +391,7 @@ eif particle outdated                  # show available updates across all matte
 eif particle remove aws/db
 ```
 
-`eif.particles.json` is the project manifest (like `package.json`). It contains the project name and, optionally, a registry override. The registry defaults to `https://github.com/giordanocardillo/eif-library` — no configuration needed. To use a different registry, add it explicitly:
+`eif.project.json` is the project manifest (like `package.json`). It contains the project name and, optionally, a registry override. The registry defaults to `https://github.com/giordanocardillo/eif-library` — no configuration needed. To use a different registry, add it explicitly:
 
 ```json
 {
@@ -495,7 +495,7 @@ Rollback restores a previous rendered `main.tf` and re-applies it. Terraform com
 - [x] Vulnerability scanning (`eif scan` via Trivy — opt-in via `--scan` or interactive prompt)
 - [x] Upgrade preview with breaking-change detection (`eif preview`)
 - [x] Particle package manager (`eif particle` — install, add, update, outdated)
-- [x] Project manifest (`eif.particles.json` — name + optional registry override)
+- [x] Project manifest (`eif.project.json` — name + optional registry override)
 - [x] Outdated alerts on render/plan/apply
 - [x] Safe update mode (`eif particle update --safe` — skips major bumps)
 - [x] Project scaffolding (`eif init` — providers, accounts.json, .gitignore, matters/)

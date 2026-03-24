@@ -195,10 +195,10 @@ _PROVIDER_TF: dict[str, str] = {
 # ── Core helpers ──────────────────────────────────────────────────────────────
 
 def find_repo_root(start: Path) -> Path:
-    """Walk up from start until we find accounts.json or eif.particles.json."""
+    """Walk up from start until we find accounts.json or eif.project.json."""
     current = start
     while current != current.parent:
-        if (current / "accounts.json").exists() or (current / "eif.particles.json").exists():
+        if (current / "accounts.json").exists() or (current / "eif.project.json").exists():
             return current
         current = current.parent
     sys.exit("❌  ERROR: no eif project found — run 'eif init' to scaffold a new project")
@@ -207,14 +207,14 @@ def find_repo_root(start: Path) -> Path:
 _DEFAULT_REGISTRY = "https://github.com/giordanocardillo/eif-library"
 
 def load_config(repo_root: Path) -> dict:
-    """Load eif.particles.json, falling back to the default registry if not set."""
+    """Load eif.project.json, falling back to the default registry if not set."""
     defaults = {"registry": _DEFAULT_REGISTRY}
-    cfg_file = repo_root / "eif.particles.json"
+    cfg_file = repo_root / "eif.project.json"
     if cfg_file.exists():
         try:
             return {**defaults, **json.loads(cfg_file.read_text())}
         except json.JSONDecodeError as e:
-            sys.exit(f"❌  ERROR: eif.particles.json is invalid JSON — {e}")
+            sys.exit(f"❌  ERROR: eif.project.json is invalid JSON — {e}")
     return defaults
 
 
@@ -1811,7 +1811,7 @@ def cmd_init_project(args: list[str]) -> None:
     # Detect if already inside an eif project
     probe = cwd
     while probe != probe.parent:
-        if (probe / "accounts.json").exists() or (probe / "eif.particles.json").exists():
+        if (probe / "accounts.json").exists() or (probe / "eif.project.json").exists():
             sys.exit(f"❌  ERROR: already inside an eif project at {probe}")
         probe = probe.parent
 
@@ -1842,10 +1842,10 @@ def cmd_init_project(args: list[str]) -> None:
     accounts_file.write_text(json.dumps(accounts, indent=2) + "\n")
     print(f"{_em('✨')}created   {_arr()} {_c('accounts.json', 'cyan')}  {_c('← fill in your credentials', 'dim')}")
 
-    # eif.particles.json
-    particles_file = cwd / "eif.particles.json"
+    # eif.project.json
+    particles_file = cwd / "eif.project.json"
     particles_file.write_text(json.dumps({"name": cwd.name}, indent=2) + "\n")
-    print(f"{_em('✨')}created   {_arr()} {_c('eif.particles.json', 'cyan')}")
+    print(f"{_em('✨')}created   {_arr()} {_c('eif.project.json', 'cyan')}")
 
     # .gitignore
     gi = cwd / ".gitignore"
@@ -2302,7 +2302,7 @@ def _require_registry(repo_root: Path) -> str:
     if registry == "local":
         sys.exit(
             "❌  ERROR: no remote registry configured\n"
-            "    create eif.particles.json with:\n"
+            "    create eif.project.json with:\n"
             '    {"registry": "https://github.com/giordanocardillo/eif-library"}'
         )
     return registry
@@ -2581,9 +2581,9 @@ def cmd_particle_outdated(args: list[str]) -> None:  # noqa: ARG001
 
 def cmd_particle_init(args: list[str]) -> None:  # noqa: ARG001
     repo_root = find_repo_root(Path.cwd())
-    cfg_file  = repo_root / "eif.particles.json"
+    cfg_file  = repo_root / "eif.project.json"
     if cfg_file.exists():
-        print(f"{_em('ℹ️')} {_c('eif.particles.json already exists', 'dim')}")
+        print(f"{_em('ℹ️')} {_c('eif.project.json already exists', 'dim')}")
         print(cfg_file.read_text())
         return
     cfg_file.write_text(json.dumps({"name": repo_root.name}, indent=2) + "\n")
@@ -2606,7 +2606,7 @@ def cmd_particle(args: list[str]) -> None:
             "Particles are molecules. Atoms are bundled automatically as dependencies.\n"
             "\n"
             "Usage:\n"
-            "  eif particle init                          Init eif.particles.json\n"
+            "  eif particle init                          Init eif.project.json\n"
             "  eif particle install                       Install all molecules from composition files\n"
             "  eif particle add <provider>/<name> [<ver>] Download molecule (+ pin if inside a matter)\n"
             "  eif particle remove <provider>/<name>     Remove molecule from matter\n"
@@ -2773,7 +2773,7 @@ def _usage() -> str:
         sub("remove", "matter",   "[<pvd> <name>]",                       "delete a local matter"),
         "",
         b("  PARTICLES  ") + d("(molecules from registry — atoms bundled automatically)"),
-        psub("init",     "",                            "create eif.particles.json"),
+        psub("init",     "",                            "create eif.project.json"),
         psub("install",  "",                            "install all pinned molecules"),
         psub("add",      "<pvd>/<name> [<ver>]",        "download molecule (+ pin if inside matter)"),
         psub("remove",   "<pvd>/<name>",                "unpin molecule from matter"),
