@@ -365,9 +365,11 @@ def _run_download_plan(
     label: str,
     done_so_far: list[int],
     total: int,
+    label_width: int = 0,
 ) -> None:
     """Execute a download plan, printing an apt-style progress bar."""
     bar_width = 24
+    padded = label.ljust(label_width) if label_width else label
     for remote_path, local_dest in plan:
         local_dest.parent.mkdir(parents=True, exist_ok=True)
         content = _remote_fetch_tf(registry, remote_path)
@@ -378,7 +380,7 @@ def _run_download_plan(
         bar     = "█" * filled + "░" * (bar_width - filled)
         pct     = int(100 * done_so_far[0] / total)
         print(
-            f"  {_c('↓', 'molecule')} {_c(label, 'dim')}  "
+            f"  {_c('↓', 'molecule')} {_c(padded, 'dim')}  "
             f"[{_c(bar, 'bgreen')}] {pct:3d}%  {done_so_far[0]}/{total} files\033[K",
             end="\r", flush=True,
         )
@@ -391,6 +393,7 @@ def _install_atom_deps(
     done_so_far: list[int],
     total: int,
     label: str,
+    label_width: int = 0,
 ) -> None:
     """Scan molecule main.tf for atom source references and download them."""
     main_tf = mol_dest / "main.tf"
@@ -414,38 +417,40 @@ def _install_atom_deps(
             continue
         atom_plan = _collect_download_plan(registry, atom_rel, atom_dest)
         total    += len(atom_plan)
-        _run_download_plan(registry, atom_plan, label, done_so_far, total)
+        _run_download_plan(registry, atom_plan, label, done_so_far, total, label_width)
 
 
-def _install_molecule(registry: str, provider: str, name: str, version: str, repo_root: Path) -> None:
+def _install_molecule(
+    registry: str, provider: str, name: str, version: str, repo_root: Path,
+    label_width: int = 0,
+) -> None:
     """Download a molecule and its atom dependencies to eif_particles/."""
-    dest = _particle_path(repo_root, "molecule", provider, name, version)
-    label = f"{provider}/{name}@{version}"
+    dest   = _particle_path(repo_root, "molecule", provider, name, version)
+    label  = f"{provider}/{name}@{version}"
+    padded = label.ljust(label_width) if label_width else label
     if dest.is_dir():
-        print(f"  {_c('✓', 'bgreen')} {_c(label, 'cyan')}  already cached")
+        print(f"  {_c('✓', 'bgreen')} {_c(padded, 'cyan')}  already cached")
         return
     # If a local copy exists (authored in this repo), skip the download
     local = repo_root / "molecules" / provider / name / version
     if local.is_dir():
-        print(f"  {_c('✓', 'bgreen')} {_c(label, 'cyan')}  local")
+        print(f"  {_c('✓', 'bgreen')} {_c(padded, 'cyan')}  local")
         return
 
     reg_rel  = f"molecules/{provider}/{name}/{version}"
     mol_plan = _collect_download_plan(registry, reg_rel, dest)
 
-    # Also collect atom deps plan (need to fetch main.tf first to know paths)
-    # Atom plans are discovered after molecule download; total grows dynamically.
-    total        = len(mol_plan)
-    done_so_far  = [0]
+    total       = len(mol_plan)
+    done_so_far = [0]
 
-    print(f"  {_c('↓', 'molecule')} {_c(label, 'dim')}  collecting...\033[K", end="\r", flush=True)
-    _run_download_plan(registry, mol_plan, label, done_so_far, total)
-    _install_atom_deps(registry, dest, repo_root, done_so_far, total, label)
+    print(f"  {_c('↓', 'molecule')} {_c(padded, 'dim')}  collecting...\033[K", end="\r", flush=True)
+    _run_download_plan(registry, mol_plan, label, done_so_far, total, label_width)
+    _install_atom_deps(registry, dest, repo_root, done_so_far, total, label, label_width)
 
     bar_width = 24
     bar = "█" * bar_width
     print(
-        f"  {_c('✓', 'bgreen')} {_c(label, 'cyan')}  "
+        f"  {_c('✓', 'bgreen')} {_c(padded, 'cyan')}  "
         f"[{_c(bar, 'bgreen')}] 100%  {done_so_far[0]}/{done_so_far[0]} files"
     )
 
@@ -2221,11 +2226,12 @@ def cmd_new_matter(args: list[str]) -> None:
     print()
 
     # Install remote particles and build molecule list for composition
+    lw = max((len(f"{provider}/{m['name']}@{m['version']}") for m in selected_mols if m.get("remote")), default=0)
     mol_entries = []
     for mol in selected_mols:
         if mol.get("remote") and registry != "local":
             version = mol["version"]
-            _install_molecule(registry, provider, mol["name"], version, repo_root)
+            _install_molecule(registry, provider, mol["name"], version, repo_root, lw)
         else:
             # local molecule — get its latest version
             local_path = repo_root / "molecules" / provider / mol["name"]
@@ -2319,7 +2325,8 @@ def cmd_particle_install(args: list[str]) -> None:  # noqa: ARG001
 
     print(f"{_em('📦')}installing molecules {_arr()} {_c(registry, 'dim')}  {_c('(atoms bundled automatically)', 'dim')}\n")
 
-    seen = set()
+    seen: set = set()
+    mols_to_install = []
     for _, comp in compositions:
         for mol in comp.get("molecules", []):
             source  = mol.get("source", "")
@@ -2331,7 +2338,11 @@ def cmd_particle_install(args: list[str]) -> None:  # noqa: ARG001
                 continue
             seen.add(key)
             provider, name = source.split("/", 1)
-            _install_molecule(registry, provider, name, version, repo_root)
+            mols_to_install.append((provider, name, version))
+
+    lw = max((len(f"{p}/{n}@{v}") for p, n, v in mols_to_install), default=0)
+    for provider, name, version in mols_to_install:
+        _install_molecule(registry, provider, name, version, repo_root, lw)
 
     print(f"\n{_em('✅')}{_c('done', 'bgreen', 'bold')}")
 
@@ -2388,10 +2399,11 @@ def cmd_particle_add(args: list[str]) -> None:
             sys.exit(f"❌  ERROR: no molecules found for {provider}")
         print()
         selected = _multiselect("molecules to add", all_mols)
+        lw = max((len(f"{provider}/{m['name']}@{m['version']}") for m in selected), default=0)
         for mol in selected:
             p, n = (mol["source"].split("/", 1) if "/" in mol.get("source", "") else (provider, mol["name"]))
             ver = mol["version"]
-            _install_molecule(registry, p, n, ver, repo_root)
+            _install_molecule(registry, p, n, ver, repo_root, lw)
             result = _matter_composition(repo_root)
             source = f"{p}/{n}"
             if result is not None:
