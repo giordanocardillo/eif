@@ -1,6 +1,6 @@
 [project]
 name = "eif"
-version = "0.1.0"
+version = "0.2.0"
 description = "Elemental Infrastructure Framework — Jinja2 to HCL renderer"
 requires-python = ">=3.11"
 dependencies = [
