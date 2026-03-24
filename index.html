@@ -849,11 +849,11 @@
     <div class="h-card particle reveal">
       <p class="h-card-num">MANIFEST</p>
       <h3 class="h-card-title" style="font-size:1.2rem;">eif.particles.json</h3>
-      <p class="h-card-desc">Declares the registry. One file per project, at the repo root.</p>
+      <p class="h-card-desc">Project manifest — like <code>package.json</code>. Contains the project name and an optional registry override. Registry defaults to eif-library.</p>
       <div class="h-card-example">
         <span class="hi">{</span>
-        <span>  "registry":</span>
-        <span class="hi">  "https://github.com/giordanocardillo/eif-library"</span>
+        <span>  "name": <span class="hi">"my-infra"</span></span>
+        <span class="t-dim">  // "registry": "https://..." if needed</span>
         <span>}</span>
       </div>
     </div>
@@ -872,10 +872,6 @@
   </div>
 
   <div class="terminal reveal">
-<span class="t-dim"># initialise registry (one-time)</span>
-<span class="t-cmd">$ eif particle init</span>
-<span class="t-ok">✓</span> <span class="t-path">created   → eif.particles.json</span>
-
 <span class="t-dim"># create a new matter — queries registry live, pins latest versions</span>
 <span class="t-cmd">$ eif new matter my-app</span>
 <span class="t-dim">  querying registry...</span>
@@ -1041,7 +1037,7 @@
 <span class="ft-comment">│</span>
 <span class="ft-file">└── examples/</span>                   <span class="ft-comment"># Reference implementation</span>
 <span class="ft-file">    ├── accounts.example.json</span>
-<span class="ft-file">    ├── eif.particles.json</span>      <span class="ft-comment"># registry config</span>
+<span class="ft-file">    ├── eif.particles.json</span>      <span class="ft-comment"># project manifest</span>
 <span class="ft-file">    ├── providers/</span>              <span class="ft-comment"># aws · azure · gcp</span>
 <span class="ft-atom">    ├── atoms/</span>
 <span class="ft-molecule">    ├── molecules/</span>
@@ -1058,7 +1054,7 @@
 <span class="ft-dir">your-project/</span>                   <span class="ft-comment"># your infrastructure repo</span>
 <span class="ft-comment">│</span>
 <span class="ft-file">├── accounts.json</span>              <span class="ft-comment"># env → cloud account config</span>
-<span class="ft-file">├── eif.particles.json</span>         <span class="ft-comment"># registry URL</span>
+<span class="ft-file">├── eif.particles.json</span>         <span class="ft-comment"># project manifest (name + optional registry)</span>
 <span style="color:var(--particle)">├── eif_particles/</span>             <span class="ft-comment"># gitignored — downloaded atoms + molecules</span>
 <span style="color:var(--particle)">│   ├── atoms/&lt;cloud&gt;/&lt;cat&gt;/&lt;name&gt;/1.0.0/</span>
 <span style="color:var(--particle)">│   └── molecules/&lt;cloud&gt;/&lt;name&gt;/1.2.0/</span>
