@@ -15,6 +15,7 @@ I N F R A S T R U C T U R E
 [![Python](https://img.shields.io/badge/Python-≥3.11-3a8fff?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![Status](https://img.shields.io/badge/Status-WIP-f0884a?style=flat-square)]()
 [![Library](https://img.shields.io/badge/Component_Library-eif--library-4af0c4?style=flat-square)](https://github.com/giordanocardillo/eif-library)
+[![Hypercommit](https://img.shields.io/badge/Hypercommit-DB2475)](https://hypercommit.com/eif)
 
 **Build infrastructure the way nature builds matter — atom by atom.**
 
