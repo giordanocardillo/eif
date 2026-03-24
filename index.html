@@ -303,6 +303,8 @@
   }
 
   /* ── HIERARCHY CARDS ── */
+  .hierarchy-2col { grid-template-columns: repeat(2, 1fr); }
+
   .hierarchy {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -560,7 +562,7 @@
 
     section { padding: 56px 20px; }
 
-    .hierarchy { grid-template-columns: 1fr; margin-top: 40px; }
+    .hierarchy, .hierarchy-2col { grid-template-columns: 1fr; margin-top: 40px; }
     .h-card { padding: 28px 20px; }
 
     .philosophy { padding: 24px 20px; margin-top: 40px; }
@@ -845,7 +847,7 @@
     Install is explicit: nothing downloads automatically.
   </p>
 
-  <div class="hierarchy" style="grid-template-columns: repeat(2, 1fr); margin-top: 64px;">
+  <div class="hierarchy hierarchy-2col" style="margin-top: 64px;">
     <div class="h-card package reveal">
       <p class="h-card-num">MANIFEST</p>
       <h3 class="h-card-title" style="font-size:1.2rem;">eif.project.json</h3>
