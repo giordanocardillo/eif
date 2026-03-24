@@ -379,7 +379,7 @@ def _run_download_plan(
         pct     = int(100 * done_so_far[0] / total)
         print(
             f"  {_c('↓', 'molecule')} {_c(label, 'dim')}  "
-            f"[{_c(bar, 'bgreen')}] {pct:3d}%  {done_so_far[0]}/{total} files",
+            f"[{_c(bar, 'bgreen')}] {pct:3d}%  {done_so_far[0]}/{total} files\033[K",
             end="\r", flush=True,
         )
 
@@ -438,7 +438,7 @@ def _install_molecule(registry: str, provider: str, name: str, version: str, rep
     total        = len(mol_plan)
     done_so_far  = [0]
 
-    print(f"  {_c('↓', 'molecule')} {_c(label, 'dim')}  collecting...", end="\r", flush=True)
+    print(f"  {_c('↓', 'molecule')} {_c(label, 'dim')}  collecting...\033[K", end="\r", flush=True)
     _run_download_plan(registry, mol_plan, label, done_so_far, total)
     _install_atom_deps(registry, dest, repo_root, done_so_far, total, label)
 
