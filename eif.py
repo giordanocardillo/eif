@@ -1322,8 +1322,24 @@ def cmd_preview_matter(args: list[str]) -> None:
             continue
 
         provider_mol, mol_name = source.split("/", 1)
-        base   = repo_root / "molecules" / provider_mol / mol_name
-        latest = latest_version(base)
+
+        # Determine if this is a cached particle or a locally authored molecule
+        particle_base = _particles_dir(repo_root) / "molecules" / provider_mol / mol_name
+        local_base    = repo_root / "molecules" / provider_mol / mol_name
+        is_particle   = particle_base.is_dir()
+        base          = particle_base if is_particle else local_base
+
+        if is_particle:
+            # For particles: query registry for latest version
+            try:
+                cfg      = load_config(repo_root)
+                registry = cfg["registry"]
+                versions = _remote_list_versions(registry, f"molecules/{provider_mol}/{mol_name}")
+                latest   = versions[-1] if versions else None
+            except Exception:
+                latest = None
+        else:
+            latest = latest_version(base)
 
         if latest is None:
             print(f"  {_c(mol['name'], 'dim'):<30} {current}  "
@@ -1336,26 +1352,30 @@ def cmd_preview_matter(args: list[str]) -> None:
             continue
 
         any_upgradeable = True
-        changes         = _diff_interface(base / current, base / latest)
-        is_breaking     = any(c["breaking"] for c in changes)
-        if is_breaking:
-            overall_breaking = True
+        status_label    = f"{_em('💥')}{_c('BREAKING', 'bred', 'bold')}"
+        ver_range       = f"{_c(current, 'yellow')} {_arr()} {_c(latest, 'bgreen', 'bold')}"
 
-        status    = (f"{_em('💥')}{_c('BREAKING', 'bred', 'bold')}"
-                     if is_breaking else _c("non-breaking", "bgreen"))
-        ver_range = f"{_c(current, 'yellow')} {_arr()} {_c(latest, 'bgreen', 'bold')}"
-        print(f"  {_c(mol['name'], 'cyan', 'bold'):<30} {ver_range}  [{status}]")
-
-        if not changes:
-            print(f"    {_c('(no interface changes)', 'dim')}\n")
-            continue
-
-        _print_diff(changes)
-        print()
+        if is_particle:
+            # Particles: version diff only — no local interface diff available
+            print(f"  {_c(mol['name'], 'cyan', 'bold'):<30} {ver_range}  "
+                  f"[{_c('particle update available', 'bgreen')}]")
+            print(f"    {_c('run eif particle update to fetch latest', 'dim')}\n")
+        else:
+            changes     = _diff_interface(base / current, base / latest)
+            is_breaking = any(c["breaking"] for c in changes)
+            if is_breaking:
+                overall_breaking = True
+            status = (status_label if is_breaking else _c("non-breaking", "bgreen"))
+            print(f"  {_c(mol['name'], 'cyan', 'bold'):<30} {ver_range}  [{status}]")
+            if not changes:
+                print(f"    {_c('(no interface changes)', 'dim')}\n")
+                continue
+            _print_diff(changes)
+            print()
 
     print()
     if not any_upgradeable:
-        print(f"{_em('✅')}{_c('all molecules up-to-date — nothing to preview', 'green')}")
+        print(f"{_em('✅')}{_c('all components up-to-date — nothing to preview', 'green')}")
     elif overall_breaking:
         print(f"{_em('💥')}{_c('BREAKING changes detected', 'bred', 'bold')}\n"
               f"   update the matter template and env vars before running "
