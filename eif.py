@@ -1797,8 +1797,13 @@ _ACCOUNTS_ENTRY: dict[str, dict] = {
 }
 
 
-def cmd_init_project(args: list[str]) -> None:  # noqa: ARG001
-    cwd = Path.cwd()
+def cmd_init_project(args: list[str]) -> None:
+    if args and not args[0].startswith("-"):
+        target = Path(args[0]).resolve()
+        target.mkdir(parents=True, exist_ok=True)
+        cwd = target
+    else:
+        cwd = Path.cwd()
 
     # Detect if already inside an eif project
     probe = cwd
