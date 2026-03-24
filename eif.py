@@ -2377,14 +2377,7 @@ def cmd_particle_add(args: list[str]) -> None:
         version = versions[-1]
         print(f"  {_c('latest', 'dim')} {_arr()} {_c(version, 'bgreen')}")
     else:
-        # Interactive: pick provider then molecule from remote registry
-        providers = _detect_providers(repo_root)
-        if not providers:
-            sys.exit("❌  ERROR: no providers found — run 'eif init' first")
-        provider = _choose("provider", providers)
-        raw = _ask(f"molecule name  (e.g. db)")
-        source = f"{provider}/{raw}"
-        args = [source]
+        sys.exit("Usage: eif particle add <provider>/<name>[@<version>]  e.g. eif particle add aws/db")
 
     # Always install to cache
     _install_molecule(registry, provider, name, version, repo_root)
