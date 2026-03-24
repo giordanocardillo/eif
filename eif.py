@@ -2013,7 +2013,7 @@ def cmd_particle_install(args: list[str]) -> None:  # noqa: ARG001
         print(f"{_c('no composition.json files found', 'dim')}")
         return
 
-    print(f"{_em('📦')}installing particles {_arr()} {_c(registry, 'dim')}\n")
+    print(f"{_em('📦')}installing molecules {_arr()} {_c(registry, 'dim')}  {_c('(atoms bundled automatically)', 'dim')}\n")
 
     seen = set()
     for _, comp in compositions:
@@ -2270,13 +2270,16 @@ def cmd_particle(args: list[str]) -> None:
     if not args or args[0] not in SUBS:
         sys.exit(
             "Usage:\n"
+            "Particles are molecules. Atoms are bundled automatically as dependencies.\n"
+            "\n"
+            "Usage:\n"
             "  eif particle init                          Init eif.particles.json\n"
-            "  eif particle install                       Install all particles from composition files\n"
-            "  eif particle add <provider>/<name> [<ver>] Add molecule to matter + install\n"
+            "  eif particle install                       Install all molecules from composition files\n"
+            "  eif particle add <provider>/<name> [<ver>] Download molecule (+ pin if inside a matter)\n"
             "  eif particle remove <provider>/<name>     Remove molecule from matter\n"
             "  eif particle update [<provider>/<name>]   Update to latest (interactive diff + confirm)\n"
             "  eif particle update --safe                 Skip major-version bumps\n"
-            "  eif particle list                          Show installed particles\n"
+            "  eif particle list                          Show installed molecules\n"
             "  eif particle outdated                      Show available updates across all matters"
         )
     SUBS[args[0]](args[1:])

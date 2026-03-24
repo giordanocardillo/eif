@@ -363,18 +363,20 @@ eif add account
 
 ### Manage particles
 
-EIF uses a package manager (`eif particle`) to install atoms and molecules from a registry into a local `eif_particles/` cache (gitignored). This is an explicit step — like `npm install`.
+**Particles are molecules.** `eif particle` manages molecules explicitly — atoms are never installed directly; they are bundled automatically as dependencies when their parent molecule is installed.
+
+`eif particle` installs molecules from a registry into a local `eif_particles/` cache (gitignored). This is an explicit step — like `npm install`.
 
 ```bash
 # initialise registry config (one-time, creates eif.particles.json)
 eif particle init
 
-# install all particles referenced across all composition.json files
-eif particle install
-
-# add a molecule to the current matter + install it (uses latest version)
+# download a molecule (installs to cache; also pins in composition.json if run inside a matter)
 eif particle add aws/db
 eif particle add aws/db 1.2.0          # or pin explicitly
+
+# install all molecules referenced across all composition.json files
+eif particle install
 
 # update a molecule (shows diff, confirms, rewrites composition.json)
 eif particle update aws/db
@@ -382,7 +384,7 @@ eif particle update                    # all molecules in current matter
 eif particle update --safe             # skip major-version bumps
 
 # inspect
-eif particle list                      # show installed particles
+eif particle list                      # show installed molecules
 eif particle outdated                  # show available updates across all matters
 
 # remove from composition.json (cache is shared — not deleted)
@@ -395,7 +397,7 @@ eif particle remove aws/db
 { "registry": "https://github.com/giordanocardillo/eif-library" }
 ```
 
-If a particle is missing when rendering, `eif` fails with a clear install message. Render and plan also print a non-blocking warning when newer versions are available in the registry.
+If a molecule is missing when rendering, `eif` fails with a clear install message. Render and plan also print a non-blocking warning when newer versions are available in the registry.
 
 ### Scaffold new components
 
