@@ -2382,35 +2382,9 @@ def cmd_particle_add(args: list[str]) -> None:
         if not providers:
             sys.exit("❌  ERROR: no providers found — run 'eif init' first")
         provider = _choose("provider", providers)
-        print(f"  {_c('querying registry...', 'dim')}", end="\r", flush=True)
-        local_mols  = _list_molecules(provider, repo_root)
-        local_names = {m["name"] for m in local_mols}
-        remote_mols = [m for m in _remote_list_molecules(registry, provider) if m["name"] not in local_names]
-        print(" " * 40, end="\r")
-        all_mols = local_mols + remote_mols
-        if not all_mols:
-            sys.exit(f"❌  ERROR: no molecules found for {provider}")
-        print()
-        selected = _multiselect("molecules to add", all_mols)
-        lw = max((len(f"{provider}/{m['name']}@{m['version']}") for m in selected), default=0)
-        for mol in selected:
-            p, n = (mol["source"].split("/", 1) if "/" in mol.get("source", "") else (provider, mol["name"]))
-            ver = mol["version"]
-            _install_molecule(registry, p, n, ver, repo_root, lw)
-            result = _matter_composition(repo_root)
-            source = f"{p}/{n}"
-            if result is not None:
-                comp_file, comp = result
-                existing = next((m for m in comp.get("molecules", []) if m["source"] == source), None)
-                if existing:
-                    existing["version"] = ver
-                else:
-                    comp.setdefault("molecules", []).append({"name": n.replace("-", "_"), "source": source, "version": ver})
-                comp_file.write_text(json.dumps(comp, indent=2) + "\n")
-                print(f"{_em('✅')}pinned    {_c(source, 'cyan')}@{_c(ver, 'bgreen', 'bold')} {_c('→ composition.json', 'dim')}")
-            else:
-                print(f"{_c('  tip: run inside a matter directory to pin to composition.json', 'dim')}")
-        return
+        raw = _ask(f"molecule name  (e.g. db)")
+        source = f"{provider}/{raw}"
+        args = [source]
 
     # Always install to cache
     _install_molecule(registry, provider, name, version, repo_root)
