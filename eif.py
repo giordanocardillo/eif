@@ -622,21 +622,28 @@ def _list_atoms(provider: str, repo_root: Path) -> list[dict]:
 
 
 def _list_molecules(provider: str, repo_root: Path) -> list[dict]:
-    """Return all versioned molecules for a provider as a list of dicts (local only)."""
-    mol_dir = repo_root / "molecules" / provider
-    result  = []
-    if mol_dir.is_dir():
+    """Return all versioned molecules for a provider — authored (molecules/) + cached (eif_particles/)."""
+    seen:   set  = set()
+    result: list = []
+
+    def _scan(mol_dir: Path) -> None:
+        if not mol_dir.is_dir():
+            return
         for mol in sorted(mol_dir.iterdir()):
-            if not mol.is_dir():
+            if not mol.is_dir() or mol.name in seen:
                 continue
             ver = latest_version(mol)
             if ver:
+                seen.add(mol.name)
                 result.append({
                     "label":   f"{mol.name}  ({ver})",
                     "name":    mol.name,
                     "version": ver,
                     "source":  f"{provider}/{mol.name}",
                 })
+
+    _scan(repo_root / "molecules" / provider)
+    _scan(_particles_dir(repo_root) / "molecules" / provider)
     return result
 
 
@@ -2195,19 +2202,9 @@ def cmd_new_matter(args: list[str]) -> None:
     if out.exists():
         sys.exit(f"❌  ERROR: {out.relative_to(cwd)} already exists")
 
-    # Molecule selection — merge local + remote, local takes precedence on name collision
-    config   = load_config(repo_root)
-    registry = config.get("registry", "local")
-    local_mols = _list_molecules(provider, repo_root)
-    local_names = {m["name"] for m in local_mols}
-
-    remote_mols: list[dict] = []
-    if registry != "local":
-        print(f"  {_c('querying registry...', 'dim')}", end="\r", flush=True)
-        remote_mols = [m for m in _remote_list_molecules(registry, provider) if m["name"] not in local_names]
-        print(" " * 40, end="\r")
-
-    all_mols = local_mols + remote_mols
+    # Molecule selection — local authored + cached particles only
+    # Use `eif particle add` first to fetch molecules from the registry
+    all_mols = _list_molecules(provider, repo_root)
 
     selected_mols: list[dict] = []
     if len(args) > 2:
@@ -2220,23 +2217,15 @@ def cmd_new_matter(args: list[str]) -> None:
         print()
         selected_mols = _multiselect("molecules to include", all_mols)
     else:
-        print(f"  {_c(f'no molecules found for {provider} — scaffolding empty matter', 'dim')}")
+        print(f"  {_c(f'no molecules found for {provider} — run eif particle add first', 'dim')}")
 
     out.mkdir(parents=True)
     print()
 
-    # Install remote particles and build molecule list for composition
-    lw = max((len(f"{provider}/{m['name']}@{m['version']}") for m in selected_mols if m.get("remote")), default=0)
+    # Build molecule list for composition (all already local/cached)
     mol_entries = []
     for mol in selected_mols:
-        if mol.get("remote") and registry != "local":
-            version = mol["version"]
-            _install_molecule(registry, provider, mol["name"], version, repo_root, lw)
-        else:
-            # local molecule — get its latest version
-            local_path = repo_root / "molecules" / provider / mol["name"]
-            version = latest_version(local_path) or "1.0.0"
-        mol_entries.append({"name": mol["name"], "source": f"{provider}/{mol['name']}", "version": version})
+        mol_entries.append({"name": mol["name"], "source": f"{provider}/{mol['name']}", "version": mol["version"]})
 
     # composition.json
     composition = {
