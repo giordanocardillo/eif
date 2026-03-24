@@ -122,7 +122,7 @@ providers/
     provider.tf.j2    ← terraform{} + provider "google" block
 ```
 
-Each `provider.tf.j2` receives the account config as Jinja2 context and renders the full `terraform {}` + `provider {}` block. The rendered output is injected into the matter template as `{{ provider_block }}`.
+Each `provider.tf.j2` receives the account config as Jinja2 context and renders the full `terraform {}` + `provider {}` block. The renderer **prepends this block automatically** to every rendered output — matter templates do not need to include it.
 
 **Adding a new provider requires no changes to `eif.py` or any existing files** — just create `providers/<cloud>/provider.tf.j2`.
 
@@ -198,6 +198,7 @@ The `eif` CLI takes a matter directory and an environment name. It:
 5. Builds a `src` dict mapping each molecule name to its resolved source path
 6. Merges account config, flat env vars, and `environment` into the template context
 7. Renders `main.tf.j2` → `.rendered/<env>/main.tf`
+8. Prepends `provider_block` automatically — no `{{ provider_block }}` needed in templates
 
 ```
 accounts.json            ──┐
@@ -281,15 +282,17 @@ uv tool install git+https://github.com/giordanocardillo/eif
 uv tool install --editable .
 ```
 
-Then clone your component library and work from inside it:
+Then initialise a new project:
 
 ```bash
-git clone https://github.com/giordanocardillo/eif-library
-cd eif-library
-cp accounts.example.json accounts.json   # fill in your credentials
+# scaffold a new project (creates accounts.json, eif.particles.json, providers/, .gitignore, matters/)
+mkdir my-infra && cd my-infra && git init
+eif init
 ```
 
-All `eif` commands are run from inside the library directory — `eif` finds the repo root by walking up to `accounts.json`.
+`eif init` prompts for which cloud providers to include (aws / azure / gcp), writes provider templates, a pre-filled `accounts.json`, and `eif.particles.json`. Fill in your credentials in `accounts.json` before deploying.
+
+All `eif` commands are run from inside the project directory — `eif` finds the repo root by walking up to `accounts.json` or `eif.particles.json`.
 
 ### Render only
 
@@ -399,7 +402,15 @@ eif particle remove aws/db
 
 If a molecule is missing when rendering, `eif` fails with a clear install message. Render and plan also print a non-blocking warning when newer versions are available in the registry.
 
-### Scaffold new components
+### Cache
+
+`eif_particles/` is a local download cache — gitignored and shared across all matters in the project. It can be safely deleted and rebuilt at any time.
+
+```bash
+eif cache clean   # shows size, confirms, then deletes eif_particles/
+```
+
+### Scaffold and remove components
 
 ```bash
 # scaffold a new atom (prompts: name, provider, category)
@@ -414,6 +425,11 @@ eif new molecule my-service
 # installs them at their latest version, and pins them in composition.json
 eif new matter
 eif new matter my-app
+
+# remove a local atom / molecule / matter (shows files, confirms before deleting)
+eif remove atom
+eif remove molecule aws db
+eif remove matter aws my-app
 ```
 
 First version starts at `1.0.0`. When a version already exists, `eif new` asks for the bump type (patch / minor / major) and computes the next version. Each scaffold emits starter `main.tf`, `variables.tf`, and `outputs.tf` (atoms/molecules) or `composition.json`, `dev.example.json`, `prod.example.json`, and `main.tf.j2` (matters).
@@ -482,6 +498,11 @@ Rollback restores a previous rendered `main.tf` and re-applies it. Terraform com
 - [x] Registry configuration (`eif.particles.json` — local or remote GitHub URL)
 - [x] Outdated alerts on render/plan/apply
 - [x] Safe update mode (`eif particle update --safe` — skips major bumps)
+- [x] Project scaffolding (`eif init` — providers, accounts.json, .gitignore, matters/)
+- [x] Component removal (`eif remove atom`, `eif remove molecule`, `eif remove matter`)
+- [x] Cache management (`eif cache clean`)
+- [x] Download progress bar (apt-style `[████░░░░] X/N files`)
+- [x] Provider block auto-prepended by renderer — no `{{ provider_block }}` in templates
 - [ ] `eif particle publish` — publish local atoms/molecules to a registry
 - [ ] CI/CD pipeline examples (GitHub Actions / Azure DevOps)
 - [ ] Cost estimation integration
