@@ -77,9 +77,9 @@ Molecules are namespaced by cloud provider: `molecules/aws/`, `molecules/azure/`
 {
   "matter": "three-tier-app",
   "molecules": [
-    { "name": "single-page-application", "source": "molecules/aws/single-page-application/v1" },
-    { "name": "db",                      "source": "molecules/aws/db/v1" },
-    { "name": "lambda-svc",              "source": "molecules/aws/lambda-svc/v1" }
+    { "name": "single-page-application", "source": "aws/single-page-application", "version": "1.0.0" },
+    { "name": "db",                      "source": "aws/db",                      "version": "1.0.0" },
+    { "name": "lambda-svc",              "source": "aws/lambda-svc",              "version": "1.0.0" }
   ]
 }
 ```
@@ -173,10 +173,10 @@ your-eif-library/
 │       └── backend.tf.j2
 │
 ├── atoms/                          # Atomic cloud services (plain HCL)
-│   └── <cloud>/<category>/<name>/v1/   # main.tf · variables.tf · outputs.tf
+│   └── <cloud>/<category>/<name>/1.0.0/   # main.tf · variables.tf · outputs.tf
 │
 ├── molecules/                      # Architectural blueprints
-│   └── <cloud>/<name>/v1/
+│   └── <cloud>/<name>/1.0.0/
 │
 └── matters/                        # Deployable applications
     └── <name>/<cloud>/
@@ -229,36 +229,37 @@ Each environment maps to a cloud account defined in `accounts.json`. The `provid
 
 ## ◑ Versioning
 
-Atoms and molecules are versioned via subdirectories (`v1/`, `v2/`, ...). This guarantees that matter already in production is never broken by new feature work.
+Atoms and molecules are versioned using **semantic versioning** (`MAJOR.MINOR.PATCH`).
 
-**The rule:**
+| Bump type | When to use | Example |
+|---|---|---|
+| `patch` | Bug fix, no interface change | `1.0.0` → `1.0.1` |
+| `minor` | New optional variable or output | `1.0.0` → `1.1.0` |
+| `major` | Breaking change (required var, type change, removed output) | `1.0.0` → `2.0.0` |
 
-| Change type | Action |
-|---|---|
-| Bug fix, new optional variable | Edit in place within the existing version |
-| Breaking change (remove var, change type, restructure outputs) | Create a new version directory alongside the old one |
-
-**Example — adding a breaking change to an atom:**
+**The rule:** create a new version directory for every breaking change. Leave old versions in place — compositions pinned to them are unaffected.
 
 ```
-atoms/aws/storage/s3/
-  v1/   ← existing production matter stays pinned here
-  v2/   ← new interface; new molecules reference this
+atoms/aws/storage/rds/
+  1.0.0/   ← existing matter stays pinned here
+  2.0.0/   ← breaking: new required variable added
 ```
 
-The molecule that needs the new feature gets its own `v2/` referencing `atoms/aws/storage/s3/v2`. All existing matter compositions continue to pin `molecules/aws/single-page-application/v1` and are completely unaffected.
+`eif new atom` and `eif new molecule` prompt for the bump type when a version already exists.
 
-Molecule sources are pinned in `composition.json`:
+Each matter's `composition.json` pins exact versions per molecule:
 
 ```json
-{ "name": "single-page-application", "source": "molecules/aws/single-page-application/v1" }
+{
+  "matter": "my-app",
+  "molecules": [
+    { "name": "db",  "source": "aws/db",  "version": "1.2.0" },
+    { "name": "spa", "source": "aws/spa", "version": "3.0.0" }
+  ]
+}
 ```
 
-To bump all pinned molecule versions in `composition.json` to the latest available:
-
-```bash
-uv run eif upgrade matters/three-tier-app/aws dev
-```
+`source` is `<provider>/<name>`. `version` is an exact semver pin — no ranges. The composition is the lock.
 
 ---
 
@@ -300,14 +301,44 @@ eif render
 eif render aws three-tier-app dev
 ```
 
+### Preview upgrade safety
+
+Before updating a molecule version, use `eif preview` to inspect what changed and whether it is breaking.
+
+```bash
+# atom — diffs the atom interface (variables + outputs) between two versions
+eif preview atom aws storage/rds
+eif preview atom aws storage/rds 1.0.0 2.0.0   # explicit range
+eif preview atom                                 # fully interactive
+
+# molecule — diffs the molecule interface between two versions
+eif preview molecule aws db
+eif preview molecule aws db 1.0.0 2.0.0
+eif preview molecule                             # fully interactive
+
+# matter — diffs all molecules in the composition against their latest registry versions
+eif preview matter aws three-tier-app dev
+eif preview matter                               # fully interactive
+
+eif preview   # prompts: atom / molecule / matter
+```
+
+All three use git-diff style output — green for additions, red for removals, yellow for type/default changes. Breaking changes are flagged with `💥 BREAKING`. Pipe to a file for plain text: `eif preview matter aws my-app dev > report.txt`.
+
 ### Full deployment lifecycle
 
 ```bash
 # plan — render + terraform plan (no changes applied)
 eif plan aws three-tier-app dev
 
+# plan with trivy scan (auto-runs if trivy is installed, blocks on CRITICAL/HIGH)
+eif plan aws three-tier-app dev --scan
+
 # apply — render + terraform init + apply + snapshot on success
 eif apply aws three-tier-app dev
+
+# apply with trivy scan
+eif apply aws three-tier-app dev --scan
 
 # destroy — terraform destroy against the last rendered output
 eif destroy aws three-tier-app dev
@@ -315,6 +346,8 @@ eif destroy aws three-tier-app dev
 # rollback — pick a previous snapshot and re-apply
 eif rollback aws three-tier-app dev
 ```
+
+When `--scan` is omitted, `plan` and `apply` prompt interactively if trivy is installed. If trivy is not on PATH, scanning is silently skipped.
 
 All commands support interactive mode (no args) and non-interactive mode (`<provider> <matter> <env>`).
 
@@ -328,16 +361,43 @@ eif init backend aws three-tier-app dev
 eif add account
 ```
 
-### Upgrade molecule versions
+### Manage particles
+
+EIF uses a package manager (`eif particle`) to install atoms and molecules from a registry into a local `eif_particles/` cache (gitignored). This is an explicit step — like `npm install`.
 
 ```bash
-eif upgrade
-eif upgrade aws three-tier-app dev
+# initialise registry config (one-time, creates eif.particles.json)
+eif particle init
+
+# install all particles referenced across all composition.json files
+eif particle install
+
+# add a molecule to the current matter + install it (uses latest version)
+eif particle add aws/db
+eif particle add aws/db 1.2.0          # or pin explicitly
+
+# update a molecule (shows diff, confirms, rewrites composition.json)
+eif particle update aws/db
+eif particle update                    # all molecules in current matter
+eif particle update --safe             # skip major-version bumps
+
+# inspect
+eif particle list                      # show installed particles
+eif particle outdated                  # show available updates across all matters
+
+# remove from composition.json (cache is shared — not deleted)
+eif particle remove aws/db
 ```
 
-### Scaffold new components
+`eif.particles.json` at the repo root configures the registry:
 
-The `eif new` commands interactively scaffold atoms, molecules, and matters. They detect available providers from `providers/`, check for existing versions, and create the correct directory structure with starter files.
+```json
+{ "registry": "https://github.com/giordanocardillo/eif-library" }
+```
+
+If a particle is missing when rendering, `eif` fails with a clear install message. Render and plan also print a non-blocking warning when newer versions are available in the registry.
+
+### Scaffold new components
 
 ```bash
 # scaffold a new atom (prompts: name, provider, category)
@@ -348,14 +408,15 @@ eif new atom my-service       # name pre-filled
 eif new molecule
 eif new molecule my-service
 
-# scaffold a new matter (prompts: name, provider)
+# scaffold a new matter — queries the registry live, selects molecules,
+# installs them at their latest version, and pins them in composition.json
 eif new matter
 eif new matter my-app
 ```
 
-If the atom or molecule already exists the command reports the latest version and asks whether to create the next one (e.g. `v2`). Each scaffold emits starter `main.tf`, `variables.tf`, and `outputs.tf` (atoms/molecules) or `composition.json`, `dev.example.json`, `prod.example.json`, and `main.tf.j2` (matters).
+First version starts at `1.0.0`. When a version already exists, `eif new` asks for the bump type (patch / minor / major) and computes the next version. Each scaffold emits starter `main.tf`, `variables.tf`, and `outputs.tf` (atoms/molecules) or `composition.json`, `dev.example.json`, `prod.example.json`, and `main.tf.j2` (matters).
 
-Matter is the only deployment entry point. Atoms and molecules are internal — use them as building blocks when authoring new matter templates, never deploy them directly.
+Matter is the only deployment entry point. Atoms and molecules are internal — use them as building blocks, never deploy them directly.
 
 ---
 
@@ -407,13 +468,19 @@ Rollback restores a previous rendered `main.tf` and re-applies it. Terraform com
 - [x] Jinja2 → HCL renderer (`eif render`)
 - [x] Multi-environment and multi-account support
 - [x] Multi-cloud provider abstraction (pluggable `providers/<cloud>/`)
-- [x] Versioned atoms and molecules (`v1/`, `eif upgrade`)
+- [x] Versioned atoms and molecules (semver `MAJOR.MINOR.PATCH`)
 - [x] Scaffolding CLI (`eif new atom`, `eif new molecule`, `eif new matter`)
 - [x] Deployment lifecycle (`eif plan`, `eif apply`, `eif destroy`, `eif rollback`)
 - [x] Remote state management (S3 / Azure Blob / GCS backends)
 - [x] Snapshot history and rollback
 - [x] Backend bootstrap (`eif init backend`)
-- [x] Vulnerability scanning (`eif scan` via Trivy — auto-runs in plan/apply)
+- [x] Vulnerability scanning (`eif scan` via Trivy — opt-in via `--scan` or interactive prompt)
+- [x] Upgrade preview with breaking-change detection (`eif preview`)
+- [x] Particle package manager (`eif particle` — install, add, update, outdated)
+- [x] Registry configuration (`eif.particles.json` — local or remote GitHub URL)
+- [x] Outdated alerts on render/plan/apply
+- [x] Safe update mode (`eif particle update --safe` — skips major bumps)
+- [ ] `eif particle publish` — publish local atoms/molecules to a registry
 - [ ] CI/CD pipeline examples (GitHub Actions / Azure DevOps)
 - [ ] Cost estimation integration
 - [ ] OPA/policy-as-code hook before apply

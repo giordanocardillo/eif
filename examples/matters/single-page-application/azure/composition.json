@@ -1,6 +1,6 @@
 {
   "matter": "single-page-application",
   "molecules": [
-    { "name": "single-page-application", "source": "molecules/azure/single-page-application/v1" }
+    { "name": "single-page-application", "source": "azure/single-page-application", "version": "1.0.0" }
   ]
 }
