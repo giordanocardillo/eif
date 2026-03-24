@@ -19,6 +19,7 @@ Commands:
     eif remove atom     [<provider> <category> <name>]
     eif remove molecule [<provider> <name>]
     eif remove matter   [<provider> <name>]
+    eif cache  clean
     eif particle init|install|add|remove|update|list|outdated
 
 Install as a shell command:
@@ -2577,6 +2578,39 @@ def cmd_particle(args: list[str]) -> None:
     SUBS[args[0]](args[1:])
 
 
+# ── Commands (cache) ──────────────────────────────────────────────────────────
+
+def cmd_cache_clean(args: list[str]) -> None:  # noqa: ARG001
+    repo_root   = find_repo_root(Path.cwd())
+    cache_dir   = _particles_dir(repo_root)
+    if not cache_dir.is_dir():
+        print(f"{_c('cache already empty', 'dim')}")
+        return
+
+    # Tally size and file count
+    files = list(cache_dir.rglob("*"))
+    file_count = sum(1 for f in files if f.is_file())
+    total_bytes = sum(f.stat().st_size for f in files if f.is_file())
+    size_str = (
+        f"{total_bytes / 1_048_576:.1f} MB" if total_bytes >= 1_048_576
+        else f"{total_bytes / 1024:.1f} KB" if total_bytes >= 1024
+        else f"{total_bytes} B"
+    )
+
+    print(f"\n  {_c('eif_particles/', 'cyan')}  {_c(f'{file_count} files · {size_str}', 'dim')}\n")
+    if not _confirm("delete entire cache?", default=False):
+        sys.exit("aborted")
+    shutil.rmtree(cache_dir)
+    print(f"{_em('✅')}cache cleared  {_c(f'({file_count} files removed)', 'dim')}")
+
+
+def cmd_cache(args: list[str]) -> None:
+    SUB = {"clean": cmd_cache_clean}
+    if not args or args[0] not in SUB:
+        sys.exit("Usage:\n  eif cache clean  Delete the eif_particles/ cache")
+    SUB[args[0]](args[1:])
+
+
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 def cmd_version(_args: list[str]) -> None:
@@ -2693,6 +2727,7 @@ def main() -> None:
         "add":      cmd_add,
         "init":     cmd_init,
         "particle": cmd_particle,
+        "cache":    cmd_cache,
     }
 
     if cmd not in CMDS:
