@@ -11,7 +11,7 @@ Commands:
     eif destroy  [<provider> <matter> <env>]  Run terraform destroy on the rendered output
     eif rollback [<provider> <matter> <env>]  Restore a previous snapshot and re-apply
     eif init                                      Scaffold a new eif project
-    eif init backend [<provider> <matter> <env>]  Bootstrap remote state bucket
+    eif config backend [<provider> <matter> <env>]  Bootstrap remote state bucket
     eif add account                               Add an account entry to accounts.json
     eif new    atom     [<name> [<provider> [<category>]]]
     eif new    molecule [<name> [<provider> [<category/atom>,...  ]]]
@@ -36,7 +36,7 @@ Examples:
     eif destroy  aws three-tier-app dev
     eif rollback aws three-tier-app dev
     eif init
-    eif init backend aws three-tier-app dev
+    eif config backend aws three-tier-app dev
     eif add account
     eif new atom
     eif new atom     my-resource aws networking
@@ -1525,7 +1525,7 @@ def cmd_rollback(args: list[str]) -> None:
 
 # ── Commands (init) ────────────────────────────────────────────────────────────
 
-def cmd_init_backend(args: list[str]) -> None:
+def cmd_config_backend(args: list[str]) -> None:
     matter_path, env = _resolve_matter_and_env(args)
     account_config, _, _, _, _ = load_inputs(matter_path, env)
 
@@ -1901,12 +1901,15 @@ def cmd_init_project(args: list[str]) -> None:
     print(f"  {_c('3.', 'dim')} run  {_c('eif new matter', 'bgreen')} to scaffold your first matter\n")
 
 
-def cmd_init(args: list[str]) -> None:
-    SUB = {"backend": cmd_init_backend}
+def cmd_config(args: list[str]) -> None:
+    SUB = {"backend": cmd_config_backend}
     if not args or args[0] not in SUB:
-        cmd_init_project(args)
-        return
+        sys.exit("Usage:\n  eif config backend [<provider> <matter> <env>]  Bootstrap remote state bucket")
     SUB[args[0]](args[1:])
+
+
+def cmd_init(args: list[str]) -> None:
+    cmd_init_project(args)
 
 
 def _pin_molecule_to_comp(comp_file: Path, comp: dict,
@@ -2819,7 +2822,7 @@ def _usage() -> str:
         "",
         b("  PROJECT"),
         row("init",    "[<folder>]",                    "scaffold new project (providers, accounts, .gitignore)"),
-        row("init",    "backend [<pvd> <matter> <env>]","bootstrap remote state bucket"),
+        row("config",  "backend [<pvd> <matter> <env>]","bootstrap remote state bucket"),
         row("add",     "account",                       "add an account entry to accounts.json"),
         row("add",     "[<pvd>/<name>[@ver]]",           "add molecule to current matter (interactive if no args)"),
         row("list",    "[providers|atoms|molecules|matters] [<pvd>]", "list local components (all if no subcommand)"),
@@ -2882,6 +2885,7 @@ def main() -> None:
         "remove":    cmd_remove,
         "add":       cmd_add,
         "init":      cmd_init,
+        "config":    cmd_config,
         "package":  cmd_package,
         "packages": cmd_package,
         "pkg":      cmd_package,

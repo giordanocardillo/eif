@@ -358,7 +358,7 @@ All commands support interactive mode (no args) and non-interactive mode (`<prov
 
 ```bash
 # set up state bucket / container / DynamoDB table via cloud CLI
-eif init backend aws three-tier-app dev
+eif config backend aws three-tier-app dev
 
 # add a new account entry to accounts.json (one-time, per account)
 eif add account
@@ -490,7 +490,7 @@ Rollback restores a previous rendered `main.tf` and re-applies it. Terraform com
 - [x] Deployment lifecycle (`eif plan`, `eif apply`, `eif destroy`, `eif rollback`)
 - [x] Remote state management (S3 / Azure Blob / GCS backends)
 - [x] Snapshot history and rollback
-- [x] Backend bootstrap (`eif init backend`)
+- [x] Backend bootstrap (`eif config backend`)
 - [x] Vulnerability scanning (`eif scan` via Trivy — opt-in via `--scan` or interactive prompt)
 - [x] Upgrade preview with breaking-change detection (`eif diff`)
 - [x] Package manager (`eif package` — install, update, outdated)
