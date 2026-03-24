@@ -2680,6 +2680,26 @@ def _usage() -> str:
     g  = lambda s: f"\033[92m{s}\033[0m"      # green
     y  = lambda s: f"\033[93m{s}\033[0m"      # yellow
     p  = lambda s: f"\033[35m{s}\033[0m"      # purple (particles)
+    T  = lambda s: f"\033[38;2;74;240;196m{s}\033[0m"   # teal  #4af0c4
+    B  = lambda s: f"\033[38;2;58;143;255m{s}\033[0m"   # blue  #3a8fff
+    O  = lambda s: f"\033[38;2;240;136;74m{s}\033[0m"   # orange #f0884a
+
+    # Three-orbit atom — orbits at 0°/60°/120°, electrons teal/blue/orange
+    # Blue electron top-left, orange bottom-left, teal right (matches SVG)
+    orb  = lambda s: d(s)
+    nuc  = T("◉")
+    e1   = T("●")   # teal  — right
+    e2   = B("●")   # blue  — top-left
+    e3   = O("●")   # orange — bottom-left
+    logo = "\n".join([
+        f"      {e2}  {orb('·  ·  ·')}        ",
+        f"    {orb('·')}    {orb('╲')}   {orb('╱')}    {orb('·')}      ",
+        f"  {orb('·')}      {orb('╲')} {orb('╱')}      {orb('·')}    ",
+        f" {orb('·')}        {nuc}        {e1}  ",
+        f"  {orb('·')}      {orb('╱')} {orb('╲')}      {orb('·')}    ",
+        f"    {orb('·')}    {orb('╱')}   {orb('╲')}    {orb('·')}      ",
+        f"      {e3}  {orb('·  ·  ·')}        ",
+    ])
 
     def row(cmd, args, desc):
         return f"  {g(b('eif'))} {b(cmd):<28} {c(args):<42} {d(desc)}"
@@ -2691,7 +2711,8 @@ def _usage() -> str:
         return f"  {g(b('eif'))} {p(b('particle'))} {p(sub_):<18} {c(args):<34} {d(desc)}"
 
     lines = [
-        b("EIF — Elemental Infrastructure Framework"),
+        logo,
+        f"  {T(b('E L E M E N T A L'))}  {B(b('I N F R A S T R U C T U R E'))}  {O(b('F R A M E W O R K'))}",
         "",
         b("  PROJECT"),
         row("init",    "",                              "scaffold new project (providers, accounts, .gitignore)"),
