@@ -840,7 +840,8 @@
   <h2 class="section-title reveal">Particles</h2>
   <p class="section-body reveal">
     <code>eif particle</code> is EIF's package manager — like npm, but for infrastructure components.
-    Atoms and molecules are installed from a registry into a local <code>eif_particles/</code> cache (gitignored).
+    <strong>Particles are molecules.</strong> Atoms are never installed directly — they are bundled automatically
+    as dependencies when their parent molecule is downloaded.
     Install is explicit: nothing downloads automatically.
   </p>
 
@@ -859,7 +860,7 @@
     <div class="h-card particle reveal">
       <p class="h-card-num">CACHE</p>
       <h3 class="h-card-title" style="font-size:1.2rem;">eif_particles/</h3>
-      <p class="h-card-desc">Local store of downloaded atoms and molecules. Gitignored. Shared across all matters in the project.</p>
+      <p class="h-card-desc">Local store of downloaded molecules and their bundled atom dependencies. Gitignored. Shared across all matters in the project.</p>
       <div class="h-card-example">
         <span>eif_particles/</span>
         <span class="hi">├── atoms/aws/storage/rds/1.0.0/</span>
@@ -911,11 +912,11 @@
 
   <div class="philosophy reveal" style="margin-top:32px;">
     <p class="philosophy-quote" style="font-size:0.9rem;font-weight:400;line-height:1.9;color:var(--text-muted);">
-      If a particle is missing when rendering, <code>eif</code> <strong style="color:var(--text)">fails fast</strong> with a clear install message.<br>
-      Atom dependencies of a molecule are <strong style="color:var(--text)">installed automatically</strong> — their relative paths
+      If a molecule is missing when rendering, <code>eif</code> <strong style="color:var(--text)">fails fast</strong> with a clear install message.<br>
+      Atom dependencies are <strong style="color:var(--text)">bundled automatically</strong> when a molecule is installed — their relative paths
       are preserved in <code>eif_particles/</code> so Terraform resolves them without modification.<br><br>
-      Local atoms and molecules (authored but not yet published) coexist alongside registry particles —
-      the renderer checks <code>eif_particles/</code> first, then falls back to local <code>atoms/</code> and <code>molecules/</code>.
+      Local molecules (authored but not yet published) coexist alongside registry particles —
+      the renderer checks <code>eif_particles/</code> first, then falls back to local <code>molecules/</code>.
     </p>
     <span class="philosophy-attr">One registry. One cache. No lock file — the composition is the lock.</span>
   </div>
