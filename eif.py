@@ -336,56 +336,102 @@ def _particle_installed(repo_root: Path, kind: str, provider: str, name: str, ve
     return _particle_path(repo_root, kind, provider, name, version).is_dir()
 
 
-def _particle_download_dir(registry: str, reg_rel_path: str, dest: Path) -> None:
-    """Recursively download all files at reg_rel_path in the registry to dest."""
+def _collect_download_plan(
+    registry: str, reg_rel_path: str, dest: Path
+) -> list[tuple[str, Path]]:
+    """Return list of (remote_path, local_dest_file) for all files under reg_rel_path."""
     items = _gh_api(f"https://api.github.com/repos/{_github_org_repo(registry)}/contents/{reg_rel_path}")
     if not isinstance(items, list):
         sys.exit(f"❌  ERROR: could not fetch {reg_rel_path} from {registry}")
-    dest.mkdir(parents=True, exist_ok=True)
+    plan: list[tuple[str, Path]] = []
     for item in items:
         if item["type"] == "file":
-            content = _remote_fetch_tf(registry, item["path"])
-            if content is not None:
-                (dest / item["name"]).write_text(content)
+            plan.append((item["path"], dest / item["name"]))
         elif item["type"] == "dir":
-            _particle_download_dir(registry, item["path"], dest / item["name"])
+            plan.extend(_collect_download_plan(registry, item["path"], dest / item["name"]))
+    return plan
 
 
-def _install_atom_deps(registry: str, mol_dest: Path, repo_root: Path) -> None:
+def _run_download_plan(
+    registry: str,
+    plan: list[tuple[str, Path]],
+    label: str,
+    done_so_far: list[int],
+    total: int,
+) -> None:
+    """Execute a download plan, printing an apt-style progress bar."""
+    bar_width = 24
+    for remote_path, local_dest in plan:
+        local_dest.parent.mkdir(parents=True, exist_ok=True)
+        content = _remote_fetch_tf(registry, remote_path)
+        if content is not None:
+            local_dest.write_text(content)
+        done_so_far[0] += 1
+        filled  = int(bar_width * done_so_far[0] / total)
+        bar     = "█" * filled + "░" * (bar_width - filled)
+        pct     = int(100 * done_so_far[0] / total)
+        print(
+            f"  {_c('↓', 'molecule')} {_c(label, 'dim')}  "
+            f"[{_c(bar, 'bgreen')}] {pct:3d}%  {done_so_far[0]}/{total} files",
+            end="\r", flush=True,
+        )
+
+
+def _install_atom_deps(
+    registry: str,
+    mol_dest: Path,
+    repo_root: Path,
+    done_so_far: list[int],
+    total: int,
+    label: str,
+) -> None:
     """Scan molecule main.tf for atom source references and download them."""
     main_tf = mol_dest / "main.tf"
     if not main_tf.exists():
         return
     for m in re.finditer(r'source\s*=\s*"([^"]*atoms/[^"]+)"', main_tf.read_text()):
-        rel = m.group(1)
+        rel    = m.group(1)
         atom_m = re.search(r'atoms/(.+)', rel)
         if not atom_m:
             continue
-        atom_rel = f"atoms/{atom_m.group(1).rstrip('/')}"
-        parts    = atom_m.group(1).strip("/").split("/")
+        atom_rel  = f"atoms/{atom_m.group(1).rstrip('/')}"
+        parts     = atom_m.group(1).strip("/").split("/")
         if len(parts) < 4:
             continue
-        # parts: [provider, category, name, version] or [provider, name, version]
         atom_dest = _particles_dir(repo_root) / "atoms" / Path(*parts)
         if atom_dest.is_dir():
             continue
-        label = f"atom:{'/'.join(parts[:-1])}@{parts[-1]}"
-        print(f"  {_em('↓')} {_c(label, 'dim')}  downloading...", end="\r", flush=True)
-        _particle_download_dir(registry, atom_rel, atom_dest)
-        print(f"  {_c('✓', 'bgreen')} {_c(label, 'cyan')}  installed          ")
+        atom_plan = _collect_download_plan(registry, atom_rel, atom_dest)
+        total    += len(atom_plan)
+        _run_download_plan(registry, atom_plan, label, done_so_far, total)
 
 
 def _install_molecule(registry: str, provider: str, name: str, version: str, repo_root: Path) -> None:
     """Download a molecule and its atom dependencies to eif_particles/."""
     dest = _particle_path(repo_root, "molecule", provider, name, version)
+    label = f"{provider}/{name}@{version}"
     if dest.is_dir():
-        print(f"  {_c('✓', 'bgreen')} {_c(f'{provider}/{name}@{version}', 'cyan')}  already cached")
+        print(f"  {_c('✓', 'bgreen')} {_c(label, 'cyan')}  already cached")
         return
-    reg_rel = f"molecules/{provider}/{name}/{version}"
-    print(f"  {_em('↓')} {_c(f'{provider}/{name}@{version}', 'dim')}  downloading...", end="\r", flush=True)
-    _particle_download_dir(registry, reg_rel, dest)
-    print(f"  {_c('✓', 'bgreen')} {_c(f'{provider}/{name}@{version}', 'cyan')}  installed          ")
-    _install_atom_deps(registry, dest, repo_root)
+
+    reg_rel  = f"molecules/{provider}/{name}/{version}"
+    mol_plan = _collect_download_plan(registry, reg_rel, dest)
+
+    # Also collect atom deps plan (need to fetch main.tf first to know paths)
+    # Atom plans are discovered after molecule download; total grows dynamically.
+    total        = len(mol_plan)
+    done_so_far  = [0]
+
+    print(f"  {_c('↓', 'molecule')} {_c(label, 'dim')}  collecting...", end="\r", flush=True)
+    _run_download_plan(registry, mol_plan, label, done_so_far, total)
+    _install_atom_deps(registry, dest, repo_root, done_so_far, total, label)
+
+    bar_width = 24
+    bar = "█" * bar_width
+    print(
+        f"  {_c('✓', 'bgreen')} {_c(label, 'cyan')}  "
+        f"[{_c(bar, 'bgreen')}] 100%  {done_so_far[0]}/{done_so_far[0]} files"
+    )
 
 
 def _all_compositions(repo_root: Path) -> list[tuple[Path, dict]]:
