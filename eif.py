@@ -1597,16 +1597,6 @@ def cmd_init_account(args: list[str]) -> None:  # noqa: ARG001
             _init_backend_gcp(entry["backend"], entry)
 
 
-_ACCOUNTS_TEMPLATE = """\
-{
-  "dev": {
-    "provider": "aws",
-    "aws_region": "us-east-1",
-    "profile": "YOUR_AWS_CLI_PROFILE"
-  }
-}
-"""
-
 _GITIGNORE_CONTENT = """\
 # eif
 accounts.json
@@ -1614,6 +1604,140 @@ eif_particles/
 .rendered/
 .history/
 """
+
+_PROVIDER_TF: dict[str, str] = {
+    "aws": """\
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 5.0"
+    }
+  }
+  required_version = ">= 1.5"
+{% if backend_block %}
+{{ backend_block }}
+{% endif %}
+}
+
+provider "aws" {
+  region = "{{ aws_region }}"
+{% if assume_role_arn is defined %}
+  assume_role {
+    role_arn = "{{ assume_role_arn }}"
+  }
+{% elif profile is defined %}
+  profile = "{{ profile }}"
+{% endif %}
+}
+""",
+    "azure": """\
+terraform {
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = ">= 3.0"
+    }
+  }
+  required_version = ">= 1.5"
+{% if backend_block %}
+{{ backend_block }}
+{% endif %}
+}
+
+provider "azurerm" {
+  subscription_id = "{{ subscription_id }}"
+  tenant_id       = "{{ tenant_id }}"
+{% if client_id is defined %}
+  client_id       = "{{ client_id }}"
+  client_secret   = "{{ client_secret }}"
+{% endif %}
+  features {}
+}
+""",
+    "gcp": """\
+terraform {
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = ">= 5.0"
+    }
+  }
+  required_version = ">= 1.5"
+{% if backend_block %}
+{{ backend_block }}
+{% endif %}
+}
+
+provider "google" {
+  project = "{{ project }}"
+  region  = "{{ region }}"
+{% if credentials_file is defined %}
+  credentials = file("{{ credentials_file }}")
+{% endif %}
+}
+""",
+}
+
+_PROVIDER_BACKEND: dict[str, str] = {
+    "aws": """\
+  backend "s3" {
+    bucket  = "{{ backend.bucket }}"
+    key     = "{{ backend_key }}"
+    region  = "{{ backend.region }}"
+    encrypt = true
+{% if 'dynamodb_table' in backend %}
+    dynamodb_table = "{{ backend.dynamodb_table }}"
+{% endif %}
+  }
+""",
+    "azure": """\
+  backend "azurerm" {
+    resource_group_name  = "{{ backend.resource_group_name }}"
+    storage_account_name = "{{ backend.storage_account_name }}"
+    container_name       = "{{ backend.container_name }}"
+    key                  = "{{ backend_key }}"
+  }
+""",
+    "gcp": """\
+  backend "gcs" {
+    bucket = "{{ backend.bucket }}"
+    prefix = "{{ backend_prefix }}"
+  }
+""",
+}
+
+_ACCOUNTS_ENTRY: dict[str, dict] = {
+    "aws": {
+        "dev": {
+            "provider": "aws",
+            "aws_region": "us-east-1",
+            "profile": "YOUR_AWS_CLI_PROFILE",
+        },
+        "prod": {
+            "provider": "aws",
+            "aws_region": "us-east-1",
+            "assume_role_arn": "arn:aws:iam::YOUR_ACCOUNT_ID:role/YOUR_ROLE_NAME",
+        },
+    },
+    "azure": {
+        "azure-dev": {
+            "provider": "azure",
+            "subscription_id": "YOUR_SUBSCRIPTION_ID",
+            "tenant_id": "YOUR_TENANT_ID",
+            "client_id": "YOUR_CLIENT_ID",
+            "client_secret": "YOUR_CLIENT_SECRET",
+        },
+    },
+    "gcp": {
+        "gcp-dev": {
+            "provider": "gcp",
+            "project": "YOUR_PROJECT_ID",
+            "region": "us-central1",
+            "credentials_file": "/path/to/service-account.json",
+        },
+    },
+}
 
 
 def cmd_init_project(args: list[str]) -> None:  # noqa: ARG001
@@ -1628,12 +1752,30 @@ def cmd_init_project(args: list[str]) -> None:  # noqa: ARG001
 
     print(f"\n{_em('◈')} {_c('eif init', 'bgreen', 'bold')} — scaffold a new project\n")
 
+    # Provider selection (all checked by default)
+    all_providers = ["aws", "azure", "gcp"]
+    choices = [questionary.Choice(p, checked=True) for p in all_providers]
+    selected = questionary.checkbox("cloud providers to include", choices=choices).ask()
+    if not selected:
+        sys.exit("aborted")
+
     registry = _ask("registry URL (or 'local')", "https://github.com/giordanocardillo/eif-library")
 
-    # accounts.json
+    # providers/ — write tf.j2 files for each selected provider
+    for prov in selected:
+        pdir = cwd / "providers" / prov
+        pdir.mkdir(parents=True, exist_ok=True)
+        (pdir / "provider.tf.j2").write_text(_PROVIDER_TF[prov])
+        (pdir / "backend.tf.j2").write_text(_PROVIDER_BACKEND[prov])
+        print(f"{_em('✨')}created   {_arr()} {_c(f'providers/{prov}/', 'cyan')}")
+
+    # accounts.json — merge entries for selected providers
+    accounts: dict = {}
+    for prov in selected:
+        accounts.update(_ACCOUNTS_ENTRY[prov])
     accounts_file = cwd / "accounts.json"
-    accounts_file.write_text(_ACCOUNTS_TEMPLATE)
-    print(f"{_em('✨')}created   {_arr()} {_c('accounts.json', 'cyan')}  {_c('← edit with your cloud credentials', 'dim')}")
+    accounts_file.write_text(json.dumps(accounts, indent=2) + "\n")
+    print(f"{_em('✨')}created   {_arr()} {_c('accounts.json', 'cyan')}  {_c('← fill in your credentials', 'dim')}")
 
     # eif.particles.json
     particles_file = cwd / "eif.particles.json"
@@ -1651,15 +1793,14 @@ def cmd_init_project(args: list[str]) -> None:  # noqa: ARG001
         gi.write_text(_GITIGNORE_CONTENT)
         print(f"{_em('✨')}created   {_arr()} {_c('.gitignore', 'cyan')}")
 
-    # matters/ directory
-    matters_dir = cwd / "matters"
-    matters_dir.mkdir(exist_ok=True)
+    # matters/
+    (cwd / "matters").mkdir(exist_ok=True)
     print(f"{_em('✨')}created   {_arr()} {_c('matters/', 'cyan')}")
 
     print(f"\n{_em('✅')} {_c('project ready', 'bgreen', 'bold')}\n")
     print(f"  {_c('next steps:', 'dim')}")
     print(f"  {_c('1.', 'dim')} edit {_c('accounts.json', 'cyan')} with your cloud credentials")
-    print(f"  {_c('2.', 'dim')} run  {_c('eif particle install', 'bgreen')} to download particles")
+    print(f"  {_c('2.', 'dim')} run  {_c('eif particle install', 'bgreen')} to download molecules")
     print(f"  {_c('3.', 'dim')} run  {_c('eif new matter', 'bgreen')} to scaffold your first matter\n")
 
 
