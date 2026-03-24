@@ -2358,6 +2358,9 @@ def cmd_particle_add(args: list[str]) -> None:
 
     if len(args) >= 2:
         source, version = args[0], args[1]
+        if "/" not in source:
+            sys.exit("❌  ERROR: source must be <provider>/<name>  e.g. aws/db")
+        provider, name = source.split("/", 1)
     elif len(args) == 1:
         source = args[0]
         if "/" not in source:
@@ -2369,11 +2372,39 @@ def cmd_particle_add(args: list[str]) -> None:
         version = versions[-1]
         print(f"  {_c('latest', 'dim')} {_arr()} {_c(version, 'bgreen')}")
     else:
-        sys.exit("Usage: eif particle add <provider>/<name> [<version>]")
-
-    if "/" not in source:
-        sys.exit("❌  ERROR: source must be <provider>/<name>  e.g. aws/db")
-    provider, name = source.split("/", 1)
+        # Interactive: pick provider then molecule from remote registry
+        providers = _detect_providers(repo_root)
+        if not providers:
+            sys.exit("❌  ERROR: no providers found — run 'eif init' first")
+        provider = _choose("provider", providers)
+        print(f"  {_c('querying registry...', 'dim')}", end="\r", flush=True)
+        local_mols  = _list_molecules(provider, repo_root)
+        local_names = {m["name"] for m in local_mols}
+        remote_mols = [m for m in _remote_list_molecules(registry, provider) if m["name"] not in local_names]
+        print(" " * 40, end="\r")
+        all_mols = local_mols + remote_mols
+        if not all_mols:
+            sys.exit(f"❌  ERROR: no molecules found for {provider}")
+        print()
+        selected = _multiselect("molecules to add", all_mols)
+        for mol in selected:
+            p, n = (mol["source"].split("/", 1) if "/" in mol.get("source", "") else (provider, mol["name"]))
+            ver = mol["version"]
+            _install_molecule(registry, p, n, ver, repo_root)
+            result = _matter_composition(repo_root)
+            source = f"{p}/{n}"
+            if result is not None:
+                comp_file, comp = result
+                existing = next((m for m in comp.get("molecules", []) if m["source"] == source), None)
+                if existing:
+                    existing["version"] = ver
+                else:
+                    comp.setdefault("molecules", []).append({"name": n.replace("-", "_"), "source": source, "version": ver})
+                comp_file.write_text(json.dumps(comp, indent=2) + "\n")
+                print(f"{_em('✅')}pinned    {_c(source, 'cyan')}@{_c(ver, 'bgreen', 'bold')} {_c('→ composition.json', 'dim')}")
+            else:
+                print(f"{_c('  tip: run inside a matter directory to pin to composition.json', 'dim')}")
+        return
 
     # Always install to cache
     _install_molecule(registry, provider, name, version, repo_root)
