@@ -20,7 +20,7 @@ Commands:
     eif remove molecule [<provider> <name>]
     eif remove matter   [<provider> <name>]
     eif cache  clean
-    eif particle install|add|remove|update|list|outdated
+    eif package install|add|remove|update|list|outdated
 
 Install as a shell command:
     uv tool install --editable .
@@ -29,7 +29,7 @@ Examples:
     eif render                                       # fully interactive
     eif preview  aws three-tier-app dev              # check upgrade safety before updating
     eif render   aws three-tier-app dev              # fully non-interactive
-    eif particle update
+    eif package update
     eif plan     aws three-tier-app dev
     eif plan     aws three-tier-app dev --scan       # auto-scan with trivy if installed
     eif apply    aws three-tier-app dev
@@ -328,19 +328,19 @@ def _remote_list_molecules(registry: str, provider: str) -> list[dict]:
 
 # ── Particle store helpers ─────────────────────────────────────────────────────
 
-def _particles_dir(repo_root: Path) -> Path:
-    return repo_root / "eif_particles"
+def _packages_dir(repo_root: Path) -> Path:
+    return repo_root / "eif_packages"
 
 
-def _particle_path(repo_root: Path, kind: str, provider: str, name: str, version: str) -> Path:
-    """Return the local path for a particle, regardless of whether it exists."""
+def _package_path(repo_root: Path, kind: str, provider: str, name: str, version: str) -> Path:
+    """Return the local path for a package, regardless of whether it exists."""
     if kind == "molecule":
-        return _particles_dir(repo_root) / "molecules" / provider / name / version
-    return _particles_dir(repo_root) / "atoms" / provider / name / version
+        return _packages_dir(repo_root) / "molecules" / provider / name / version
+    return _packages_dir(repo_root) / "atoms" / provider / name / version
 
 
-def _particle_installed(repo_root: Path, kind: str, provider: str, name: str, version: str) -> bool:
-    return _particle_path(repo_root, kind, provider, name, version).is_dir()
+def _package_installed(repo_root: Path, kind: str, provider: str, name: str, version: str) -> bool:
+    return _package_path(repo_root, kind, provider, name, version).is_dir()
 
 
 def _collect_download_plan(
@@ -408,7 +408,7 @@ def _install_atom_deps(
         parts     = atom_m.group(1).strip("/").split("/")
         if len(parts) < 4:
             continue
-        atom_dest = _particles_dir(repo_root) / "atoms" / Path(*parts)
+        atom_dest = _packages_dir(repo_root) / "atoms" / Path(*parts)
         if atom_dest.is_dir():
             continue
         # If a local copy exists in the repo, skip the download
@@ -424,8 +424,8 @@ def _install_molecule(
     registry: str, provider: str, name: str, version: str, repo_root: Path,
     label_width: int = 0,
 ) -> None:
-    """Download a molecule and its atom dependencies to eif_particles/."""
-    dest   = _particle_path(repo_root, "molecule", provider, name, version)
+    """Download a molecule and its atom dependencies to eif_packages/."""
+    dest   = _package_path(repo_root, "molecule", provider, name, version)
     label  = f"{provider}/{name}@{version}"
     padded = label.ljust(label_width) if label_width else label
     if dest.is_dir():
@@ -497,7 +497,7 @@ def resolve_sources(molecules: list, repo_root: Path, output_dir: Path) -> dict:
     """Return {mol_name: relative_tf_path} for each molecule.
 
     Resolution order:
-      1. eif_particles/molecules/<provider>/<name>/<version>/
+      1. eif_packages/molecules/<provider>/<name>/<version>/
       2. local molecules/<provider>/<name>/  (latest local version, for authoring)
       3. fail with install message
     """
@@ -507,10 +507,10 @@ def resolve_sources(molecules: list, repo_root: Path, output_dir: Path) -> dict:
         version = mol["version"]  # "1.2.0"
         provider, name = source.split("/", 1)
 
-        # 1. particle store
-        particle_path = repo_root / "eif_particles" / "molecules" / provider / name / version
-        if particle_path.is_dir():
-            result[mol["name"]] = os.path.relpath(particle_path.resolve(), output_dir)
+        # 1. package store
+        package_path = repo_root / "eif_packages" / "molecules" / provider / name / version
+        if package_path.is_dir():
+            result[mol["name"]] = os.path.relpath(package_path.resolve(), output_dir)
             continue
 
         # 2. local authoring directory
@@ -524,7 +524,7 @@ def resolve_sources(molecules: list, repo_root: Path, output_dir: Path) -> dict:
         # 3. not found
         sys.exit(
             f"❌  ERROR: {source}@{version} not installed\n"
-            f"    run: eif particle install"
+            f"    run: eif package install"
         )
     return result
 
@@ -622,7 +622,7 @@ def _list_atoms(provider: str, repo_root: Path) -> list[dict]:
 
 
 def _list_molecules(provider: str, repo_root: Path) -> list[dict]:
-    """Return all versioned molecules for a provider — authored (molecules/) + cached (eif_particles/)."""
+    """Return all versioned molecules for a provider — authored (molecules/) + cached (eif_packages/)."""
     seen:   set  = set()
     result: list = []
 
@@ -643,7 +643,7 @@ def _list_molecules(provider: str, repo_root: Path) -> list[dict]:
                 })
 
     _scan(repo_root / "molecules" / provider)
-    _scan(_particles_dir(repo_root) / "molecules" / provider)
+    _scan(_packages_dir(repo_root) / "molecules" / provider)
     return result
 
 
@@ -843,7 +843,7 @@ def _do_render(matter_path: Path, env: str) -> tuple[Path, dict, dict, dict, Pat
                         f"  {_c('⚠', 'byellow')}  {_c(o['source'], 'cyan')}  "
                         f"{_c(o['version'], 'yellow')} {_arr()} {_c(o['latest'], 'bgreen')} available"
                     )
-                print(f"  {_c('run: eif particle update', 'dim')}")
+                print(f"  {_c('run: eif package update', 'dim')}")
         except Exception:
             pass  # no network — skip silently
 
@@ -1323,14 +1323,14 @@ def cmd_preview_matter(args: list[str]) -> None:
 
         provider_mol, mol_name = source.split("/", 1)
 
-        # Determine if this is a cached particle or a locally authored molecule
-        particle_base = _particles_dir(repo_root) / "molecules" / provider_mol / mol_name
+        # Determine if this is a cached package or a locally authored molecule
+        package_base = _packages_dir(repo_root) / "molecules" / provider_mol / mol_name
         local_base    = repo_root / "molecules" / provider_mol / mol_name
-        is_particle   = particle_base.is_dir()
-        base          = particle_base if is_particle else local_base
+        is_package   = package_base.is_dir()
+        base          = package_base if is_package else local_base
 
-        if is_particle:
-            # For particles: query registry for latest version
+        if is_package:
+            # For packages: query registry for latest version
             try:
                 cfg      = load_config(repo_root)
                 registry = cfg["registry"]
@@ -1355,11 +1355,11 @@ def cmd_preview_matter(args: list[str]) -> None:
         status_label    = f"{_em('💥')}{_c('BREAKING', 'bred', 'bold')}"
         ver_range       = f"{_c(current, 'yellow')} {_arr()} {_c(latest, 'bgreen', 'bold')}"
 
-        if is_particle:
+        if is_package:
             # Particles: version diff only — no local interface diff available
             print(f"  {_c(mol['name'], 'cyan', 'bold'):<30} {ver_range}  "
-                  f"[{_c('particle update available', 'bgreen')}]")
-            print(f"    {_c('run eif particle update to fetch latest', 'dim')}\n")
+                  f"[{_c('package update available', 'bgreen')}]")
+            print(f"    {_c('run eif package update to fetch latest', 'dim')}\n")
         else:
             changes     = _diff_interface(base / current, base / latest)
             is_breaking = any(c["breaking"] for c in changes)
@@ -1379,10 +1379,10 @@ def cmd_preview_matter(args: list[str]) -> None:
     elif overall_breaking:
         print(f"{_em('💥')}{_c('BREAKING changes detected', 'bred', 'bold')}\n"
               f"   update the matter template and env vars before running "
-              f"{_c('eif particle update', 'bcyan')}")
+              f"{_c('eif package update', 'bcyan')}")
     else:
         print(f"{_em('✅')}{_c('no breaking changes', 'bgreen', 'bold')} "
-              f"{_arr()} safe to run {_c('eif particle update', 'bcyan')}")
+              f"{_arr()} safe to run {_c('eif package update', 'bcyan')}")
 
 
 def cmd_preview(args: list[str]) -> None:
@@ -1697,7 +1697,7 @@ def cmd_init_account(args: list[str]) -> None:  # noqa: ARG001
 _GITIGNORE_CONTENT = """\
 # eif
 accounts.json
-eif_particles/
+eif_packages/
 .rendered/
 .history/
 """
@@ -1875,15 +1875,15 @@ def cmd_init_project(args: list[str]) -> None:
     print(f"{_em('✨')}created   {_arr()} {_c('accounts.json', 'cyan')}  {_c('← fill in your credentials', 'dim')}")
 
     # eif.project.json
-    particles_file = cwd / "eif.project.json"
-    particles_file.write_text(json.dumps({"name": cwd.name}, indent=2) + "\n")
+    project_file = cwd / "eif.project.json"
+    project_file.write_text(json.dumps({"name": cwd.name}, indent=2) + "\n")
     print(f"{_em('✨')}created   {_arr()} {_c('eif.project.json', 'cyan')}")
 
     # .gitignore
     gi = cwd / ".gitignore"
     if gi.exists():
         existing = gi.read_text()
-        if "eif_particles" not in existing:
+        if "eif_packages" not in existing:
             gi.write_text(existing.rstrip() + "\n" + _GITIGNORE_CONTENT)
             print(f"{_em('✨')}updated   {_arr()} {_c('.gitignore', 'cyan')}")
     else:
@@ -1897,7 +1897,7 @@ def cmd_init_project(args: list[str]) -> None:
     print(f"\n{_em('✅')} {_c('project ready', 'bgreen', 'bold')}\n")
     print(f"  {_c('next steps:', 'dim')}")
     print(f"  {_c('1.', 'dim')} edit {_c('accounts.json', 'cyan')} with your cloud credentials")
-    print(f"  {_c('2.', 'dim')} run  {_c('eif particle add <pvd>/<name>', 'bgreen')} to fetch particles")
+    print(f"  {_c('2.', 'dim')} run  {_c('eif package add <pvd>/<name>', 'bgreen')} to fetch packages")
     print(f"  {_c('3.', 'dim')} run  {_c('eif new matter', 'bgreen')} to scaffold your first matter\n")
 
 
@@ -2222,8 +2222,8 @@ def cmd_new_matter(args: list[str]) -> None:
     if out.exists():
         sys.exit(f"❌  ERROR: {out.relative_to(cwd)} already exists")
 
-    # Molecule selection — local authored + cached particles only
-    # Use `eif particle add` first to fetch particles from the registry
+    # Molecule selection — local authored + cached packages only
+    # Use `eif package add` first to fetch packages from the registry
     all_mols = _list_molecules(provider, repo_root)
 
     selected_mols: list[dict] = []
@@ -2237,7 +2237,7 @@ def cmd_new_matter(args: list[str]) -> None:
         print()
         selected_mols = _multiselect("molecules to include", all_mols)
     else:
-        print(f"  {_c(f'no molecules found for {provider} — run eif particle add first', 'dim')}")
+        print(f"  {_c(f'no molecules found for {provider} — run eif package add first', 'dim')}")
 
     out.mkdir(parents=True)
     print()
@@ -2309,7 +2309,7 @@ def cmd_new(args: list[str]) -> None:
 
 
 
-# ── Commands (particle) ────────────────────────────────────────────────────────
+# ── Commands (package) ────────────────────────────────────────────────────────
 
 def _require_registry(repo_root: Path) -> str:
     config   = load_config(repo_root)
@@ -2323,7 +2323,7 @@ def _require_registry(repo_root: Path) -> str:
     return registry
 
 
-def cmd_particle_install(args: list[str]) -> None:  # noqa: ARG001
+def cmd_package_install(args: list[str]) -> None:  # noqa: ARG001
     repo_root = find_repo_root(Path.cwd())
     registry  = _require_registry(repo_root)
 
@@ -2332,7 +2332,7 @@ def cmd_particle_install(args: list[str]) -> None:  # noqa: ARG001
         print(f"{_c('no composition.json files found', 'dim')}")
         return
 
-    print(f"{_em('📦')}installing particles {_arr()} {_c(registry, 'dim')}\n")
+    print(f"{_em('📦')}installing packages {_arr()} {_c(registry, 'dim')}\n")
 
     seen: set = set()
     mols_to_install = []
@@ -2369,10 +2369,10 @@ def _matter_composition(repo_root: Path) -> tuple[Path, dict] | None:
     return None
 
 
-def cmd_particle_add(args: list[str]) -> None:
-    """Install a particle and optionally pin it in the current matter's composition.json.
+def cmd_package_add(args: list[str]) -> None:
+    """Install a package and optionally pin it in the current matter's composition.json.
 
-    Usage: eif particle add <provider>/<name>[@<version>]
+    Usage: eif package add <provider>/<name>[@<version>]
     """
     repo_root = find_repo_root(Path.cwd())
     registry  = _require_registry(repo_root)
@@ -2397,7 +2397,7 @@ def cmd_particle_add(args: list[str]) -> None:
         version = versions[-1]
         print(f"  {_c('latest', 'dim')} {_arr()} {_c(version, 'bgreen')}")
     else:
-        sys.exit("Usage: eif particle add <provider>/<name>[@<version>]  e.g. eif particle add aws/db")
+        sys.exit("Usage: eif package add <provider>/<name>[@<version>]  e.g. eif package add aws/db")
 
     # Always install to cache
     _install_molecule(registry, provider, name, version, repo_root)
@@ -2422,7 +2422,7 @@ def cmd_particle_add(args: list[str]) -> None:
         print(f"{_em('✅')}pinned    {_c(source, 'cyan')}@{_c(version, 'bgreen', 'bold')} {_c('→ composition.json', 'dim')}")
 
 
-def cmd_particle_remove(args: list[str]) -> None:
+def cmd_package_remove(args: list[str]) -> None:
     repo_root = find_repo_root(Path.cwd())
     matter_path, _ = _resolve_matter_and_env([])
     comp_file = matter_path / "composition.json"
@@ -2430,7 +2430,7 @@ def cmd_particle_remove(args: list[str]) -> None:
         sys.exit(f"❌  ERROR: composition.json not found at {comp_file}")
 
     if not args:
-        sys.exit("Usage: eif particle remove <provider>/<name>")
+        sys.exit("Usage: eif package remove <provider>/<name>")
     source = args[0]
 
     comp = json.loads(comp_file.read_text())
@@ -2440,10 +2440,10 @@ def cmd_particle_remove(args: list[str]) -> None:
         sys.exit(f"❌  ERROR: {source} not found in composition.json")
     comp_file.write_text(json.dumps(comp, indent=2) + "\n")
     print(f"{_em('✅')}removed   {_c(source, 'cyan')} from composition.json")
-    print(f"  {_c('note: eif_particles/ cache not deleted (may be shared)', 'dim')}")
+    print(f"  {_c('note: eif_packages/ cache not deleted (may be shared)', 'dim')}")
 
 
-def cmd_particle_update(args: list[str]) -> None:
+def cmd_package_update(args: list[str]) -> None:
     safe_mode = "--safe" in args
     args      = [a for a in args if a != "--safe"]
 
@@ -2517,12 +2517,12 @@ def cmd_particle_update(args: list[str]) -> None:
         print(f"\n{_em('✅')}{_c('nothing to update', 'green')}")
 
 
-def cmd_particle_list(args: list[str]) -> None:  # noqa: ARG001
+def cmd_package_list(args: list[str]) -> None:  # noqa: ARG001
     repo_root = find_repo_root(Path.cwd())
-    pdir      = _particles_dir(repo_root)
+    pdir      = _packages_dir(repo_root)
 
     if not pdir.is_dir():
-        print(f"  {_c('no particles installed — run: eif particle install', 'dim')}")
+        print(f"  {_c('no packages installed — run: eif package install', 'dim')}")
         return
 
     for kind in ("molecules", "atoms"):
@@ -2542,7 +2542,7 @@ def cmd_particle_list(args: list[str]) -> None:  # noqa: ARG001
                         print(f"  {_c(label, 'cyan'):<{30 + (9 if _IS_TTY else 0)}}  {_c(ver_dir.name, 'dim')}")
 
 
-def cmd_particle_outdated(args: list[str]) -> None:  # noqa: ARG001
+def cmd_package_outdated(args: list[str]) -> None:  # noqa: ARG001
     repo_root = find_repo_root(Path.cwd())
     registry  = _require_registry(repo_root)
 
@@ -2566,32 +2566,32 @@ def cmd_particle_outdated(args: list[str]) -> None:  # noqa: ARG001
             )
 
     if not any_outdated:
-        print(f"{_em('✅')}{_c('all particles up-to-date', 'bgreen', 'bold')}")
+        print(f"{_em('✅')}{_c('all packages up-to-date', 'bgreen', 'bold')}")
     else:
-        print(f"\n{_c('run: eif particle update', 'dim')}")
+        print(f"\n{_c('run: eif package update', 'dim')}")
 
 
-def cmd_particle(args: list[str]) -> None:
+def cmd_package(args: list[str]) -> None:
     SUBS = {
-        "install":  cmd_particle_install,
-        "add":      cmd_particle_add,
-        "remove":   cmd_particle_remove,
-        "update":   cmd_particle_update,
-        "list":     cmd_particle_list,
-        "outdated": cmd_particle_outdated,
+        "install":  cmd_package_install,
+        "add":      cmd_package_add,
+        "remove":   cmd_package_remove,
+        "update":   cmd_package_update,
+        "list":     cmd_package_list,
+        "outdated": cmd_package_outdated,
     }
     if not args or args[0] not in SUBS:
         sys.exit(
             "Usage:\n"
             "Particles are remote molecules fetched from the registry. Local molecules and atoms are authored directly.\n"
             "\n"
-            "  eif particle install                       Install all pinned particles\n"
-            "  eif particle add <provider>/<name>[@<ver>] Download particle (+ pin if inside a matter)\n"
-            "  eif particle remove <provider>/<name>      Remove particle from matter\n"
-            "  eif particle update [<provider>/<name>]    Update to latest (interactive diff + confirm)\n"
-            "  eif particle update --safe                  Skip major-version bumps\n"
-            "  eif particle list                           Show installed particles\n"
-            "  eif particle outdated                       Show available updates across all matters"
+            "  eif package install                       Install all pinned packages\n"
+            "  eif package add <provider>/<name>[@<ver>] Download package (+ pin if inside a matter)\n"
+            "  eif package remove <provider>/<name>      Remove package from matter\n"
+            "  eif package update [<provider>/<name>]    Update to latest (interactive diff + confirm)\n"
+            "  eif package update --safe                  Skip major-version bumps\n"
+            "  eif package list                           Show installed packages\n"
+            "  eif package outdated                       Show available updates across all matters"
         )
     SUBS[args[0]](args[1:])
 
@@ -2600,7 +2600,7 @@ def cmd_particle(args: list[str]) -> None:
 
 def cmd_cache_clean(args: list[str]) -> None:  # noqa: ARG001
     repo_root   = find_repo_root(Path.cwd())
-    cache_dir   = _particles_dir(repo_root)
+    cache_dir   = _packages_dir(repo_root)
     if not cache_dir.is_dir():
         print(f"{_c('cache already empty', 'dim')}")
         return
@@ -2615,7 +2615,7 @@ def cmd_cache_clean(args: list[str]) -> None:  # noqa: ARG001
         else f"{total_bytes} B"
     )
 
-    print(f"\n  {_c('eif_particles/', 'cyan')}  {_c(f'{file_count} files · {size_str}', 'dim')}\n")
+    print(f"\n  {_c('eif_packages/', 'cyan')}  {_c(f'{file_count} files · {size_str}', 'dim')}\n")
     if not _confirm("delete entire cache?", default=False):
         sys.exit("aborted")
     shutil.rmtree(cache_dir)
@@ -2625,7 +2625,7 @@ def cmd_cache_clean(args: list[str]) -> None:  # noqa: ARG001
 def cmd_cache(args: list[str]) -> None:
     SUB = {"clean": cmd_cache_clean}
     if not args or args[0] not in SUB:
-        sys.exit("Usage:\n  eif cache clean  Delete the eif_particles/ cache")
+        sys.exit("Usage:\n  eif cache clean  Delete the eif_packages/ cache")
     SUB[args[0]](args[1:])
 
 
@@ -2716,7 +2716,7 @@ def _usage() -> str:
     c  = lambda s: f"\033[96m{s}\033[0m"      # cyan
     g  = lambda s: f"\033[92m{s}\033[0m"      # green
     y  = lambda s: f"\033[93m{s}\033[0m"      # yellow
-    p  = lambda s: f"\033[35m{s}\033[0m"      # purple (particles)
+    p  = lambda s: f"\033[35m{s}\033[0m"      # purple (packages)
     T  = lambda s: f"\033[38;2;74;240;196m{s}\033[0m"   # teal  #4af0c4
     B  = lambda s: f"\033[38;2;58;143;255m{s}\033[0m"   # blue  #3a8fff
     O  = lambda s: f"\033[38;2;240;136;74m{s}\033[0m"   # orange #f0884a
@@ -2728,7 +2728,7 @@ def _usage() -> str:
         return f"  {g(b('eif'))} {b(cmd)} {y(b(sub_)):<24} {c(args):<38} {d(desc)}"
 
     def psub(sub_, args, desc):
-        return f"  {g(b('eif'))} {p(b('particle'))} {p(sub_):<18} {c(args):<34} {d(desc)}"
+        return f"  {g(b('eif'))} {p(b('package'))} {p(sub_):<18} {c(args):<34} {d(desc)}"
 
     lines = [
         f"  {T('E')}{b('LEMENTAL')}",
@@ -2752,18 +2752,18 @@ def _usage() -> str:
         "",
         b("  PARTICLES  ") + d("(remote molecules + bundled atoms from registry)"),
 
-        psub("install",  "",                            "install all pinned particles"),
-        psub("add",      "<pvd>/<name>[@<ver>]",         "download particle (+ pin if inside matter)"),
+        psub("install",  "",                            "install all pinned packages"),
+        psub("add",      "<pvd>/<name>[@<ver>]",         "download package (+ pin if inside matter)"),
         psub("remove",   "<pvd>/<name>",                "unpin molecule from matter"),
         psub("update",   "[<pvd>/<name>] [--safe]",     "update to latest, show diff, confirm"),
         psub("outdated", "",                            "show available updates across all matters"),
-        psub("list",     "",                            "show installed particles"),
-        row("cache",  "clean",                          "delete eif_particles/ cache"),
+        psub("list",     "",                            "show installed packages"),
+        row("cache",  "clean",                          "delete eif_packages/ cache"),
         "",
         b("  DEPLOYMENT"),
         row("render",   "[<pvd> <matter> <env>]",       "render composition → .rendered/<env>/main.tf"),
         row("preview",  "atom|molecule [<pvd> <name> [<from> <to>]]", "diff interface, flag breaking changes"),
-        row("preview",  "matter [<pvd> <matter> <env>]","diff all particles against registry"),
+        row("preview",  "matter [<pvd> <matter> <env>]","diff all packages against registry"),
         row("plan",     "[<pvd> <matter> <env>] [--scan]", "render + terraform plan"),
         row("apply",    "[<pvd> <matter> <env>] [--scan]", "render + terraform apply + snapshot"),
         row("destroy",  "[<pvd> <matter> <env>]",       "terraform destroy"),
@@ -2771,7 +2771,7 @@ def _usage() -> str:
         row("scan",     "[<pvd> <matter> <env>]",       "trivy vulnerability scan"),
         "",
         d("  All positional args are optional — missing ones are prompted interactively."),
-        d("  --safe  skips breaking major-version bumps during particle update."),
+        d("  --safe  skips breaking major-version bumps during package update."),
         d("  --scan  auto-runs trivy; without it, plan/apply prompt if trivy is installed."),
     ]
     return "\n".join(lines)
@@ -2799,8 +2799,8 @@ def main() -> None:
         "remove":    cmd_remove,
         "add":       cmd_add,
         "init":      cmd_init,
-        "particle":  cmd_particle,
-        "particles": cmd_particle,
+        "package":  cmd_package,
+        "packages": cmd_package,
         "cache":     cmd_cache,
     }
 

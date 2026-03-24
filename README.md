@@ -364,31 +364,31 @@ eif init backend aws three-tier-app dev
 eif add account
 ```
 
-### Manage particles
+### Manage packages
 
-**Particles are molecules.** `eif particle` manages molecules explicitly — atoms are never installed directly; they are bundled automatically as dependencies when their parent molecule is installed.
+`eif package` downloads molecules from a registry into a local `eif_packages/` cache (gitignored). This is an explicit step — like `npm install`.
 
-`eif particle` installs molecules from a registry into a local `eif_particles/` cache (gitignored). This is an explicit step — like `npm install`.
+`eif package` installs molecules from a registry into a local `eif_packages/` cache (gitignored). This is an explicit step — like `npm install`.
 
 ```bash
 # download a molecule (installs to cache; also pins in composition.json if run inside a matter)
-eif particle add aws/db
-eif particle add aws/db 1.2.0          # or pin explicitly
+eif package add aws/db
+eif package add aws/db 1.2.0          # or pin explicitly
 
 # install all molecules referenced across all composition.json files
-eif particle install
+eif package install
 
 # update a molecule (shows diff, confirms, rewrites composition.json)
-eif particle update aws/db
-eif particle update                    # all molecules in current matter
-eif particle update --safe             # skip major-version bumps
+eif package update aws/db
+eif package update                    # all molecules in current matter
+eif package update --safe             # skip major-version bumps
 
 # inspect
-eif particle list                      # show installed molecules
-eif particle outdated                  # show available updates across all matters
+eif package list                      # show installed molecules
+eif package outdated                  # show available updates across all matters
 
 # remove from composition.json (cache is shared — not deleted)
-eif particle remove aws/db
+eif package remove aws/db
 ```
 
 `eif.project.json` is the project manifest (like `package.json`). It contains the project name and, optionally, a registry override. The registry defaults to `https://github.com/giordanocardillo/eif-library` — no configuration needed. To use a different registry, add it explicitly:
@@ -404,10 +404,10 @@ If a molecule is missing when rendering, `eif` fails with a clear install messag
 
 ### Cache
 
-`eif_particles/` is a local download cache — gitignored and shared across all matters in the project. It can be safely deleted and rebuilt at any time.
+`eif_packages/` is a local download cache — gitignored and shared across all matters in the project. It can be safely deleted and rebuilt at any time.
 
 ```bash
-eif cache clean   # shows size, confirms, then deletes eif_particles/
+eif cache clean   # shows size, confirms, then deletes eif_packages/
 ```
 
 ### Scaffold and remove components
@@ -494,16 +494,16 @@ Rollback restores a previous rendered `main.tf` and re-applies it. Terraform com
 - [x] Backend bootstrap (`eif init backend`)
 - [x] Vulnerability scanning (`eif scan` via Trivy — opt-in via `--scan` or interactive prompt)
 - [x] Upgrade preview with breaking-change detection (`eif preview`)
-- [x] Particle package manager (`eif particle` — install, add, update, outdated)
+- [x] Package manager (`eif package` — install, add, update, outdated)
 - [x] Project manifest (`eif.project.json` — name + optional registry override)
 - [x] Outdated alerts on render/plan/apply
-- [x] Safe update mode (`eif particle update --safe` — skips major bumps)
+- [x] Safe update mode (`eif package update --safe` — skips major bumps)
 - [x] Project scaffolding (`eif init` — providers, accounts.json, .gitignore, matters/)
 - [x] Component removal (`eif remove atom`, `eif remove molecule`, `eif remove matter`)
 - [x] Cache management (`eif cache clean`)
 - [x] Download progress bar (apt-style `[████░░░░] X/N files`)
 - [x] Provider block auto-prepended by renderer — no `{{ provider_block }}` in templates
-- [ ] `eif particle publish` — publish local atoms/molecules to a registry
+- [ ] `eif package publish` — publish local atoms/molecules to a registry
 - [ ] CI/CD pipeline examples (GitHub Actions / Azure DevOps)
 - [ ] Cost estimation integration
 - [ ] OPA/policy-as-code hook before apply
