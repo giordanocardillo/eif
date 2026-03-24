@@ -2095,6 +2095,8 @@ def cmd_new_molecule(args: list[str]) -> None:
 
     # Atom selection
     all_atoms = _list_atoms(provider, repo_root)
+    if not all_atoms:
+        sys.exit(f"❌  ERROR: no atoms found for {provider} — create atoms first with 'eif new atom'")
     selected_atoms: list[dict] = []
     if len(args) > 2:
         atom_map = {f"{a['category']}/{a['name']}": a for a in all_atoms}
@@ -2102,11 +2104,9 @@ def cmd_new_molecule(args: list[str]) -> None:
             if key not in atom_map:
                 sys.exit(f"❌  ERROR: atom '{key}' not found. Available: {list(atom_map)}")
             selected_atoms.append(atom_map[key])
-    elif all_atoms:
+    else:
         print()
         selected_atoms = _multiselect("atoms to include", all_atoms)
-    else:
-        print(f"  {_c(f'no atoms found for {provider} — scaffolding empty molecule', 'dim')}")
 
     out = mol_dir / new_ver
     if out.exists():
