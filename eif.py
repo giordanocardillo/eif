@@ -1354,7 +1354,7 @@ def cmd_preview_matter(args: list[str]) -> None:
 
 
 def cmd_preview(args: list[str]) -> None:
-    SUBS = {"atom": cmd_preview_atom, "molecule": cmd_preview_molecule, "matter": cmd_preview_matter}
+    SUBS = {"atom": cmd_preview_atom, "atoms": cmd_preview_atom, "molecule": cmd_preview_molecule, "molecules": cmd_preview_molecule, "matter": cmd_preview_matter, "matters": cmd_preview_matter}
 
     if args and args[0] in SUBS:
         return SUBS[args[0]](args[1:])
@@ -1959,9 +1959,9 @@ def cmd_remove_matter(args: list[str]) -> None:
 
 def cmd_remove(args: list[str]) -> None:
     SUB = {
-        "atom":     cmd_remove_atom,
-        "molecule": cmd_remove_molecule,
-        "matter":   cmd_remove_matter,
+        "atom":      cmd_remove_atom,     "atoms":     cmd_remove_atom,
+        "molecule":  cmd_remove_molecule, "molecules": cmd_remove_molecule,
+        "matter":    cmd_remove_matter,   "matters":   cmd_remove_matter,
     }
     if not args or args[0] not in SUB:
         sys.exit(
@@ -2277,9 +2277,9 @@ def cmd_new_matter(args: list[str]) -> None:
 
 def cmd_new(args: list[str]) -> None:
     SUB = {
-        "atom":     cmd_new_atom,
-        "molecule": cmd_new_molecule,
-        "matter":   cmd_new_matter,
+        "atom":      cmd_new_atom,      "atoms":     cmd_new_atom,
+        "molecule":  cmd_new_molecule,  "molecules": cmd_new_molecule,
+        "matter":    cmd_new_matter,    "matters":   cmd_new_matter,
     }
     if not args or args[0] not in SUB:
         sys.exit(
@@ -2628,8 +2628,12 @@ def cmd_version(_args: list[str]) -> None:
 # ── Commands (list) ────────────────────────────────────────────────────────────
 
 def cmd_list(args: list[str]) -> None:
+    _ALIAS = {"provider": "providers", "atom": "atoms", "molecule": "molecules", "matter": "matters"}
     SUBS = ("providers", "atoms", "molecules", "matters")
     repo_root = find_repo_root(Path.cwd())
+
+    if args:
+        args = [_ALIAS.get(args[0], args[0])] + args[1:]
 
     # bare `eif list` — print everything
     if not args or args[0] not in SUBS:
@@ -2772,21 +2776,22 @@ def main() -> None:
 
     cmd = args[0]
     CMDS = {
-        "version":  cmd_version,
-        "list":     cmd_list,
-        "render":   cmd_render,
-        "preview":  cmd_preview,
-        "scan":     cmd_scan,
-        "plan":     cmd_plan,
-        "apply":    cmd_apply,
-        "destroy":  cmd_destroy,
-        "rollback": cmd_rollback,
-        "new":      cmd_new,
-        "remove":   cmd_remove,
-        "add":      cmd_add,
-        "init":     cmd_init,
-        "particle": cmd_particle,
-        "cache":    cmd_cache,
+        "version":   cmd_version,
+        "list":      cmd_list,
+        "render":    cmd_render,
+        "preview":   cmd_preview,
+        "scan":      cmd_scan,
+        "plan":      cmd_plan,
+        "apply":     cmd_apply,
+        "destroy":   cmd_destroy,
+        "rollback":  cmd_rollback,
+        "new":       cmd_new,
+        "remove":    cmd_remove,
+        "add":       cmd_add,
+        "init":      cmd_init,
+        "particle":  cmd_particle,
+        "particles": cmd_particle,
+        "cache":     cmd_cache,
     }
 
     if cmd not in CMDS:
