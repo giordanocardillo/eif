@@ -2363,10 +2363,14 @@ def _matter_composition(repo_root: Path) -> tuple[Path, dict] | None:
 def cmd_particle_add(args: list[str]) -> None:
     """Install a particle and optionally pin it in the current matter's composition.json.
 
-    Usage: eif particle add <provider>/<name> [<version>]
+    Usage: eif particle add <provider>/<name>[@<version>]
     """
     repo_root = find_repo_root(Path.cwd())
     registry  = _require_registry(repo_root)
+
+    # Support aws/db@1.2.0 syntax — split off version before further parsing
+    if args and "@" in args[0]:
+        args = args[0].split("@", 1) + args[1:]
 
     if len(args) >= 2:
         source, version = args[0], args[1]
@@ -2787,7 +2791,7 @@ def _usage() -> str:
         b("  PARTICLES  ") + d("(molecules from registry — atoms bundled automatically)"),
         psub("init",     "",                            "create eif.project.json"),
         psub("install",  "",                            "install all pinned molecules"),
-        psub("add",      "<pvd>/<name> [<ver>]",        "download molecule (+ pin if inside matter)"),
+        psub("add",      "<pvd>/<name>[@<ver>]",         "download molecule (+ pin if inside matter)"),
         psub("remove",   "<pvd>/<name>",                "unpin molecule from matter"),
         psub("update",   "[<pvd>/<name>] [--safe]",     "update to latest, show diff, confirm"),
         psub("outdated", "",                            "show available updates across all matters"),
