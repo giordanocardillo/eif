@@ -1897,7 +1897,7 @@ def cmd_init_project(args: list[str]) -> None:
     print(f"\n{_em('✅')} {_c('project ready', 'bgreen', 'bold')}\n")
     print(f"  {_c('next steps:', 'dim')}")
     print(f"  {_c('1.', 'dim')} edit {_c('accounts.json', 'cyan')} with your cloud credentials")
-    print(f"  {_c('2.', 'dim')} run  {_c('eif package add <pvd>/<name>', 'bgreen')} to fetch packages")
+    print(f"  {_c('2.', 'dim')} run  {_c('eif package install <pvd>/<name>', 'bgreen')} to fetch packages")
     print(f"  {_c('3.', 'dim')} run  {_c('eif new matter', 'bgreen')} to scaffold your first matter\n")
 
 
@@ -2310,7 +2310,7 @@ def cmd_new_matter(args: list[str]) -> None:
         sys.exit(f"❌  ERROR: {out.relative_to(cwd)} already exists")
 
     # Molecule selection — local authored + cached packages only
-    # Use `eif package add` first to fetch packages from the registry
+    # Use `eif package install` first to fetch packages from the registry
     all_mols = _list_molecules(provider, repo_root)
 
     selected_mols: list[dict] = []
@@ -2324,7 +2324,7 @@ def cmd_new_matter(args: list[str]) -> None:
         print()
         selected_mols = _multiselect("molecules to include", all_mols)
     else:
-        print(f"  {_c(f'no molecules found for {provider} — run eif package add first', 'dim')}")
+        print(f"  {_c(f'no molecules found for {provider} — run eif package install first', 'dim')}")
 
     out.mkdir(parents=True)
     print()
@@ -2836,10 +2836,10 @@ def _usage() -> str:
         sub("remove", "molecule", "[<pvd> <name>]",                       "delete a local molecule"),
         sub("remove", "matter",   "[<pvd> <name>]",                       "delete a local matter"),
         "",
-        b("  PARTICLES  ") + d("(remote molecules + bundled atoms from registry)"),
+        b("  PACKAGES  ") + d("(remote molecules + bundled atoms from registry)"),
 
         psub("install",  "",                            "install all pinned packages"),
-        psub("add",      "<pvd>/<name>[@<ver>]",         "download package (+ pin if inside matter)"),
+        psub("install",  "<pvd>/<name>[@<ver>]",        "download package (+ pin if inside matter)"),
         psub("remove",   "<pvd>/<name>",                "unpin molecule from matter"),
         psub("update",   "[<pvd>/<name>] [--safe]",     "update to latest, show diff, confirm"),
         psub("outdated", "",                            "show available updates across all matters"),
