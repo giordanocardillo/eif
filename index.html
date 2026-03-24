@@ -781,7 +781,7 @@
     <p class="philosophy-quote" style="font-size:0.9rem;font-weight:400;line-height:1.9;color:var(--text-muted);">
       The <code>accounts.json</code> entry declares <strong style="color:var(--text)">"provider": "aws"</strong> (or azure, gcp).<br>
       <code>eif render</code> resolves the right template, renders it with account config as context,<br>
-      and injects the result as <strong style="color:var(--accent)">&#123;&#123; provider_block &#125;&#125;</strong> into the matter template.<br><br>
+      and <strong style="color:var(--text)">prepends it automatically</strong> to every rendered output — matter templates contain only module blocks.<br><br>
       <strong style="color:var(--text)">To contribute a new provider:</strong> create <span style="font-family:'Space Mono',monospace;color:var(--atom)">providers/&lt;cloud&gt;/provider.tf.j2</span>,<br>
       add atoms under <span style="font-family:'Space Mono',monospace;color:var(--atom)">atoms/&lt;cloud&gt;/</span> and molecules under <span style="font-family:'Space Mono',monospace;color:var(--molecule)">molecules/&lt;cloud&gt;/</span>.
     </p>
@@ -929,31 +929,33 @@
   <p class="section-label reveal">Developer experience</p>
   <h2 class="section-title reveal">Scaffold commands</h2>
   <p class="section-body reveal">
-    The <code>eif new</code> commands interactively scaffold new atoms, molecules, and matters.
-    They detect available providers, check for existing versions, and emit starter files
-    with the correct structure — so you can focus on the implementation, not the boilerplate.
+    <code>eif init</code> scaffolds a new project in seconds. <code>eif new</code> adds atoms, molecules, and matters.
+    <code>eif remove</code> deletes them with a confirmation prompt. All commands are fully interactive.
   </p>
 
   <div class="file-tree reveal" style="margin-top:48px;">
 <pre>
+<span class="ft-comment"># initialise a new project — select providers, creates accounts.json + provider templates</span>
+<span style="color:var(--accent)">eif init</span>
+<span class="ft-comment">  ◻ aws   ◻ azure   ◻ gcp  (space to select)</span>
+<span class="ft-comment">  registry URL: https://github.com/giordanocardillo/eif-library</span>
+<span class="ft-comment">  ✨ created   → providers/aws/  providers/azure/</span>
+<span class="ft-comment">  ✨ created   → accounts.json · eif.particles.json · .gitignore · matters/</span>
+
 <span class="ft-comment"># scaffold a new atom — prompts: name, provider, category, bump type</span>
 <span style="color:var(--accent)">eif new atom</span>
-<span class="ft-comment">  name: cdn-origin</span>
-<span class="ft-comment">  provider: 1) aws  2) azure  3) gcp  → 1</span>
-<span class="ft-comment">  category: 1) compute  2) networking  3) storage  → 2</span>
 <span class="ft-comment">  📦 atoms/aws/networking/cdn-origin — no existing versions, creating 1.0.0</span>
-<span class="ft-comment">  ✨ created   → atoms/aws/networking/cdn-origin/1.0.0/main.tf</span>
-<span class="ft-comment">  ✨ created   → atoms/aws/networking/cdn-origin/1.0.0/variables.tf</span>
-<span class="ft-comment">  ✨ created   → atoms/aws/networking/cdn-origin/1.0.0/outputs.tf</span>
-
-<span class="ft-comment"># scaffold a new molecule — prompts: name, provider, atoms to include</span>
-<span style="color:var(--accent)">eif new molecule</span> my-service
+<span class="ft-comment">  ✨ created   → atoms/aws/networking/cdn-origin/1.0.0/{main,variables,outputs}.tf</span>
 
 <span class="ft-comment"># scaffold a new matter — queries registry live, pins latest versions</span>
 <span style="color:var(--accent)">eif new matter</span> serverless-api
-<span class="ft-comment">  ✨ created   → matters/serverless-api/aws/composition.json</span>
-<span class="ft-comment">  ✨ created   → matters/serverless-api/aws/dev.example.json</span>
-<span class="ft-comment">  ✨ created   → matters/serverless-api/aws/main.tf.j2</span>
+<span class="ft-comment">  ✨ created   → matters/serverless-api/aws/{composition.json,dev.example.json,main.tf.j2}</span>
+
+<span class="ft-comment"># remove a component — shows files, confirms before deleting</span>
+<span style="color:var(--accent)">eif remove molecule</span> aws db
+<span class="ft-comment">  remove  molecules/aws/db/</span>
+<span class="ft-comment">  - molecules/aws/db/1.0.0/main.tf</span>
+<span class="ft-comment">  delete molecules/aws/db? (y/N)</span>
 </pre>
   </div>
 
@@ -964,7 +966,7 @@
       Providers are <strong style="color:var(--text)">auto-detected</strong> from the <span style="font-family:'Space Mono',monospace;color:var(--atom)">providers/</span> directory —
       no hardcoded list, no config needed.
     </p>
-    <span class="philosophy-attr">New providers are automatically available to eif new.</span>
+    <span class="philosophy-attr">New providers are automatically available to eif new. eif cache clean wipes eif_particles/ safely.</span>
   </div>
 </section>
 
