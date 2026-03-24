@@ -10,6 +10,7 @@ Commands:
     eif apply    [<provider> <matter> <env>]  Render, run terraform apply, snapshot   [--scan]
     eif destroy  [<provider> <matter> <env>]  Run terraform destroy on the rendered output
     eif rollback [<provider> <matter> <env>]  Restore a previous snapshot and re-apply
+    eif init                                      Scaffold a new eif project
     eif init backend [<provider> <matter> <env>]  Bootstrap remote state bucket
     eif add account                               Add an account entry to accounts.json
     eif new atom     [<name> [<provider> [<category>]]]
@@ -30,6 +31,7 @@ Examples:
     eif apply    aws three-tier-app dev
     eif destroy  aws three-tier-app dev
     eif rollback aws three-tier-app dev
+    eif init
     eif init backend aws three-tier-app dev
     eif add account
     eif new atom
@@ -189,13 +191,13 @@ _PROVIDER_TF: dict[str, str] = {
 # ── Core helpers ──────────────────────────────────────────────────────────────
 
 def find_repo_root(start: Path) -> Path:
-    """Walk up from start until we find accounts.json."""
+    """Walk up from start until we find accounts.json or eif.particles.json."""
     current = start
     while current != current.parent:
-        if (current / "accounts.json").exists():
+        if (current / "accounts.json").exists() or (current / "eif.particles.json").exists():
             return current
         current = current.parent
-    sys.exit("❌  ERROR: accounts.json not found in any parent directory")
+    sys.exit("❌  ERROR: no eif project found — run 'eif init' to scaffold a new project")
 
 
 def load_config(repo_root: Path) -> dict:
@@ -1591,13 +1593,77 @@ def cmd_init_account(args: list[str]) -> None:  # noqa: ARG001
             _init_backend_gcp(entry["backend"], entry)
 
 
+_ACCOUNTS_TEMPLATE = """\
+{
+  "dev": {
+    "provider": "aws",
+    "aws_region": "us-east-1",
+    "profile": "YOUR_AWS_CLI_PROFILE"
+  }
+}
+"""
+
+_GITIGNORE_CONTENT = """\
+# eif
+accounts.json
+eif_particles/
+.rendered/
+.history/
+"""
+
+
+def cmd_init_project(args: list[str]) -> None:  # noqa: ARG001
+    cwd = Path.cwd()
+
+    # Detect if already inside an eif project
+    probe = cwd
+    while probe != probe.parent:
+        if (probe / "accounts.json").exists() or (probe / "eif.particles.json").exists():
+            sys.exit(f"❌  ERROR: already inside an eif project at {probe}")
+        probe = probe.parent
+
+    print(f"\n{_em('◈')} {_c('eif init', 'bgreen', 'bold')} — scaffold a new project\n")
+
+    registry = _ask("registry URL (or 'local')", "https://github.com/giordanocardillo/eif-library")
+
+    # accounts.json
+    accounts_file = cwd / "accounts.json"
+    accounts_file.write_text(_ACCOUNTS_TEMPLATE)
+    print(f"{_em('✨')}created   {_arr()} {_c('accounts.json', 'cyan')}  {_c('← edit with your cloud credentials', 'dim')}")
+
+    # eif.particles.json
+    particles_file = cwd / "eif.particles.json"
+    particles_file.write_text(json.dumps({"registry": registry}, indent=2) + "\n")
+    print(f"{_em('✨')}created   {_arr()} {_c('eif.particles.json', 'cyan')}")
+
+    # .gitignore
+    gi = cwd / ".gitignore"
+    if gi.exists():
+        existing = gi.read_text()
+        if "eif_particles" not in existing:
+            gi.write_text(existing.rstrip() + "\n" + _GITIGNORE_CONTENT)
+            print(f"{_em('✨')}updated   {_arr()} {_c('.gitignore', 'cyan')}")
+    else:
+        gi.write_text(_GITIGNORE_CONTENT)
+        print(f"{_em('✨')}created   {_arr()} {_c('.gitignore', 'cyan')}")
+
+    # matters/ directory
+    matters_dir = cwd / "matters"
+    matters_dir.mkdir(exist_ok=True)
+    print(f"{_em('✨')}created   {_arr()} {_c('matters/', 'cyan')}")
+
+    print(f"\n{_em('✅')} {_c('project ready', 'bgreen', 'bold')}\n")
+    print(f"  {_c('next steps:', 'dim')}")
+    print(f"  {_c('1.', 'dim')} edit {_c('accounts.json', 'cyan')} with your cloud credentials")
+    print(f"  {_c('2.', 'dim')} run  {_c('eif particle install', 'bgreen')} to download particles")
+    print(f"  {_c('3.', 'dim')} run  {_c('eif new matter', 'bgreen')} to scaffold your first matter\n")
+
+
 def cmd_init(args: list[str]) -> None:
     SUB = {"backend": cmd_init_backend}
     if not args or args[0] not in SUB:
-        sys.exit(
-            "Usage:\n"
-            "  eif init backend [<provider> <matter> <env>]  Bootstrap remote state bucket"
-        )
+        cmd_init_project(args)
+        return
     SUB[args[0]](args[1:])
 
 
@@ -2279,7 +2345,8 @@ USAGE = (
     "  eif apply    [<provider> <matter> <env>]  [--scan]\n"
     "  eif destroy  [<provider> <matter> <env>]\n"
     "  eif rollback [<provider> <matter> <env>]\n"
-    "  eif init backend [<provider> <matter> <env>]\n"
+    "  eif init\n"
+  "  eif init backend [<provider> <matter> <env>]\n"
     "  eif add account\n"
     "  eif new atom     [<name> [<provider> [<category>]]]\n"
     "  eif new molecule [<name> [<provider> [<category/atom>,...]]]\n"
