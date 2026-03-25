@@ -9,7 +9,7 @@ dependencies = [
 ]
 
 [project.scripts]
-eif = "eif:main"
+eif = "eif.__main__:main"
 
 [build-system]
 requires = ["hatchling"]

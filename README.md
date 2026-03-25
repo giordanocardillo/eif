@@ -124,7 +124,7 @@ providers/
 
 Each `provider.tf.j2` receives the account config as Jinja2 context and renders the full `terraform {}` + `provider {}` block. The renderer **prepends this block automatically** to every rendered output — matter templates do not need to include it.
 
-**Adding a new provider requires no changes to `eif.py` or any existing files** — just create `providers/<cloud>/provider.tf.j2`.
+**Adding a new provider requires no changes to the CLI source or any existing files** — just create `providers/<cloud>/provider.tf.j2`.
 
 The `accounts.json` entry for each environment declares which provider to use:
 
@@ -144,7 +144,20 @@ This repository contains the **CLI tool only**. The component library lives in [
 
 ```
 eif/                        ← this repo — the CLI tool
-├── eif.py
+├── eif/                    ← Python package
+│   ├── __init__.py
+│   ├── __main__.py
+│   ├── commands.py
+│   ├── core.py
+│   ├── deploy.py
+│   ├── diff.py
+│   ├── init.py
+│   ├── packages.py
+│   ├── registry.py
+│   ├── render.py
+│   ├── scaffold.py
+│   ├── snapshot.py
+│   └── ui.py
 ├── pyproject.toml
 └── examples/               ← reference implementation
     ├── accounts.example.json
@@ -278,7 +291,7 @@ Each matter's `composition.json` pins exact versions per molecule:
 # install eif as a shell command
 uv tool install git+https://github.com/giordanocardillo/eif
 
-# or editable from a local clone (changes to eif.py take effect immediately)
+# or editable from a local clone (changes take effect immediately)
 uv tool install --editable .
 ```
 
@@ -524,7 +537,7 @@ Rollback restores a previous rendered `main.tf` and re-applies it. Terraform com
 3. Add molecules under `molecules/<cloud>/` composing those atoms
 4. Add account entries to `accounts.json` with `"provider": "<cloud>"`
 
-No changes to `eif.py` required.
+No changes to the CLI source required.
 
 ### General contributions
 
