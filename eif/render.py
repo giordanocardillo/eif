@@ -7,8 +7,8 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
-from .core import find_repo_root, load_config, latest_version, _packages_dir
-from .packages import _check_outdated
+from .core import find_repo_root, latest_version, _packages_dir
+from .packages import _check_outdated, _build_clients
 from .ui import _c, _em, _pfx, _arr, _resolve_matter_and_env
 
 
@@ -186,11 +186,10 @@ def _do_render(matter_path: Path, env: str) -> tuple[Path, dict, dict, dict, Pat
     print(f"{_pfx()} {_em('🔧')}rendered  {_arr()} {_c(str(output_dir / 'outputs.tf'), 'cyan')}")
 
     # Outdated check (non-blocking, silently skip on network error)
-    config   = load_config(repo_root)
-    registry = config.get("registry", "local")
-    if registry != "local":
+    clients = _build_clients(repo_root)
+    if clients:
         try:
-            outdated = _check_outdated(composition["molecules"], registry)
+            outdated = _check_outdated(composition["molecules"], clients)
             if outdated:
                 print()
                 for o in outdated:
@@ -200,7 +199,7 @@ def _do_render(matter_path: Path, env: str) -> tuple[Path, dict, dict, dict, Pat
                     )
                 print(f"  {_c('run: eif package update', 'dim')}")
         except Exception:
-            pass  # no network — skip silently
+            pass
 
     return output_dir, account_config, composition, env_config, repo_root
 

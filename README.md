@@ -377,6 +377,66 @@ eif config backend aws three-tier-app dev
 eif add account
 ```
 
+### Registries
+
+EIF supports multiple registries configured per project. Registries are resolved in priority order — highest first. When the same molecule exists in more than one registry, the highest-priority registry wins.
+
+**`eif.project.json`** — public config, committed to git:
+
+```json
+{
+  "name": "my-infra",
+  "registries": [
+    { "name": "official", "type": "github", "url": "https://github.com/giordanocardillo/eif-library", "priority": 0 },
+    { "name": "company",  "type": "gitlab", "url": "https://gitlab.com/myorg/eif-lib",                "priority": 100 }
+  ]
+}
+```
+
+**`eif.secure.json`** — auth only, gitignored. Never committed:
+
+```json
+{
+  "registryAuth": {
+    "company":  { "token_env": "GITLAB_TOKEN" },
+    "internal": { "type": "oauth_client", "client_id_env": "CLIENT_ID", "client_secret_env": "CLIENT_SECRET", "token_url": "https://auth.example.com/token" }
+  }
+}
+```
+
+#### Supported registry types
+
+| Type | Backed by | Auth options |
+|---|---|---|
+| `github` | GitHub repository | `token_env` → PAT as `Authorization: Bearer` |
+| `gitlab` | GitLab repository (cloud or self-hosted) | `token_env` → PAT as `PRIVATE-TOKEN` |
+| `http` | Any HTTP server following EIF protocol | `bearer` · `basic` · `oauth_client` · none |
+
+HTTP registry protocol: `GET <url>/<path>/` returns `[{name, type: dir\|file}, ...]`; `GET <url>/<path>` returns raw file content. Any static file server (nginx, S3, GitHub Pages) qualifies.
+
+#### HTTP auth types
+
+```json
+{ "type": "bearer",       "token_env": "REG_TOKEN" }
+{ "type": "basic",        "username_env": "REG_USER", "password_env": "REG_PASS" }
+{ "type": "oauth_client", "client_id_env": "ID", "client_secret_env": "SECRET", "token_url": "https://..." }
+```
+
+#### Registry commands
+
+```bash
+# interactive — prompts for type, name, url, priority, then auth fields
+eif registry add
+
+# non-interactive
+eif registry add company https://gitlab.com/myorg/eif-lib --type gitlab --priority 100
+
+eif registry list      # show all registries with type, priority, auth status
+eif registry remove    # interactive picker, or: eif registry remove <name>
+```
+
+`eif init` adds the official registry by default and includes `eif.secure.json` in `.gitignore`.
+
 ### Manage packages
 
 `eif package` downloads molecules from a registry into a local `eif_packages/` cache (gitignored). Install is explicit — nothing downloads automatically.
@@ -403,16 +463,7 @@ eif package outdated                  # show available updates across all matter
 eif package remove aws/db
 ```
 
-`eif.project.json` is the project manifest. It contains the project name and, optionally, a registry override. The registry defaults to `https://github.com/giordanocardillo/eif-library` — no configuration needed. To use a different registry, add it explicitly:
-
-```json
-{
-  "name": "my-infra",
-  "registry": "https://github.com/your-org/your-library"
-}
-```
-
-If a molecule is missing when rendering, `eif` fails with a clear install message. Render and plan also print a non-blocking warning when newer versions are available in the registry.
+If a molecule is missing when rendering, `eif` fails with a clear install message. Render and plan also print a non-blocking warning when newer versions are available in any configured registry.
 
 ### Cache
 
@@ -512,7 +563,11 @@ Rollback restores a previous rendered `main.tf` and re-applies it. Terraform com
 - [x] Vulnerability scanning (`eif scan` via Trivy — opt-in via `--scan` or interactive prompt)
 - [x] Upgrade diff with breaking-change detection (`eif diff`)
 - [x] Package manager (`eif package` — install, update, outdated)
-- [x] Project manifest (`eif.project.json` — name + optional registry override)
+- [x] Project manifest (`eif.project.json` — name + registries array)
+- [x] Multi-registry support (apt-style priority, `github` / `gitlab` / `http` adapters)
+- [x] Secure auth config (`eif.secure.json` — gitignored, separate from project manifest)
+- [x] Per-registry auth: PAT, bearer, basic, OAuth 2.0 client credentials
+- [x] Registry management (`eif registry add` / `list` / `remove` — interactive + non-interactive)
 - [x] Outdated alerts on render/plan/apply
 - [x] Safe update mode (`eif package update --safe` — skips major bumps)
 - [x] Project scaffolding (`eif init` — providers, accounts.json, .gitignore, matters/)

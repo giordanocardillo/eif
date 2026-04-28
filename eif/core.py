@@ -88,19 +88,37 @@ def find_repo_root(start: Path) -> Path:
     sys.exit("❌  ERROR: no eif project found — run 'eif init' to scaffold a new project")
 
 
-_DEFAULT_REGISTRY = "https://github.com/giordanocardillo/eif-library"
-
-
 def load_config(repo_root: Path) -> dict:
-    """Load eif.project.json, falling back to the default registry if not set."""
-    defaults = {"registry": _DEFAULT_REGISTRY}
+    """Load eif.project.json."""
     cfg_file = repo_root / "eif.project.json"
     if cfg_file.exists():
         try:
-            return {**defaults, **json.loads(cfg_file.read_text())}
+            return json.loads(cfg_file.read_text())
         except json.JSONDecodeError as e:
             sys.exit(f"❌  ERROR: eif.project.json is invalid JSON — {e}")
-    return defaults
+    return {}
+
+
+def load_registries(repo_root: Path) -> list[dict]:
+    """Return registries from eif.project.json sorted by priority descending. May be empty."""
+    regs = load_config(repo_root).get("registries", [])
+    return sorted(regs, key=lambda r: int(r.get("priority", 0)), reverse=True)
+
+
+def load_secure(repo_root: Path) -> dict:
+    """Load eif.secure.json (gitignored). Returns empty dict if file absent."""
+    sec_file = repo_root / "eif.secure.json"
+    if not sec_file.exists():
+        return {}
+    try:
+        return json.loads(sec_file.read_text())
+    except json.JSONDecodeError as e:
+        sys.exit(f"❌  ERROR: eif.secure.json is invalid JSON — {e}")
+
+
+def save_secure(repo_root: Path, data: dict) -> None:
+    """Write eif.secure.json atomically."""
+    (repo_root / "eif.secure.json").write_text(json.dumps(data, indent=2) + "\n")
 
 
 def _packages_dir(repo_root: Path) -> Path:
