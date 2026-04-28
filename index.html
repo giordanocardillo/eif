@@ -642,7 +642,7 @@
     </svg>
   </div>
 
-  <span class="badge">v0.3.0 — SEMVER · PACKAGES</span>
+  <span class="badge">v0.4.0 — SEMVER · PACKAGES · REGISTRIES</span>
   <h1><span class="accent-e">E</span>lemental <span class="accent-i">I</span>nfrastructure <span class="accent-f">F</span>ramework</h1>
   <p class="hero-subtitle">Build infrastructure the way nature builds matter</p>
   <p class="hero-desc">
@@ -851,12 +851,17 @@
     <div class="h-card package reveal">
       <p class="h-card-num">MANIFEST</p>
       <h3 class="h-card-title" style="font-size:1.2rem;">eif.project.json</h3>
-      <p class="h-card-desc">Project manifest. Contains the project name and an optional registry override. Registry defaults to eif-library.</p>
+      <p class="h-card-desc">Project manifest. Declares named registries with type, URL, and priority. Auth lives in <code>eif.secure.json</code> (gitignored).</p>
       <div class="h-card-example">
         <span class="hi">{</span>
-        <span>  "name": <span class="hi">"my-infra"</span></span>
-        <span class="t-dim">  // "registry": "https://..." if needed</span>
-        <span>}</span>
+        <span>  "name": <span class="hi">"my-infra"</span>,</span>
+        <span>  "registries": [{</span>
+        <span>    "name": <span class="hi">"official"</span>,</span>
+        <span>    "type": <span class="hi">"github"</span>,</span>
+        <span>    "url": <span class="hi">"https://..."</span>,</span>
+        <span>    "priority": <span class="hi">0</span></span>
+        <span>  }]</span>
+        <span class="hi">}</span>
       </div>
     </div>
     <div class="h-card package reveal">
@@ -916,7 +921,7 @@
       Local molecules (authored but not yet published) coexist alongside registry packages —
       the renderer checks <code>eif_packages/</code> first, then falls back to local <code>molecules/</code>.
     </p>
-    <span class="philosophy-attr">One registry. One cache. No lock file — the composition is the lock.</span>
+    <span class="philosophy-attr">Multiple registries, priority-ordered. One cache. No lock file — the composition is the lock.</span>
   </div>
 </section>
 
@@ -1056,7 +1061,7 @@
 <span class="ft-dir">your-project/</span>                   <span class="ft-comment"># your infrastructure repo</span>
 <span class="ft-comment">│</span>
 <span class="ft-file">├── accounts.json</span>              <span class="ft-comment"># env → cloud account config</span>
-<span class="ft-file">├── eif.project.json</span>         <span class="ft-comment"># project manifest (name + optional registry)</span>
+<span class="ft-file">├── eif.project.json</span>         <span class="ft-comment"># project manifest (name + registries)</span>
 <span style="color:var(--package)">├── eif_packages/</span>             <span class="ft-comment"># gitignored — downloaded atoms + molecules</span>
 <span style="color:var(--package)">│   ├── atoms/&lt;cloud&gt;/&lt;cat&gt;/&lt;name&gt;/1.0.0/</span>
 <span style="color:var(--package)">│   └── molecules/&lt;cloud&gt;/&lt;name&gt;/1.2.0/</span>
@@ -1104,7 +1109,7 @@
 <!-- FOOTER -->
 <footer>
   <span>© 2026 Elemental Infrastructure Framework</span>
-  <span style="color:var(--accent)">EIF — v0.3.0</span>
+  <span style="color:var(--accent)">EIF — v0.4.0</span>
   <a href="https://github.com/giordanocardillo/eif" target="_blank" style="color:var(--text-muted);text-decoration:none;display:flex;align-items:center;gap:6px;transition:color 0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-muted)'">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
     giordanocardillo/eif
