@@ -6,9 +6,9 @@ import sys
 import tempfile
 from pathlib import Path
 
-from .core import _is_semver, _semver_key, find_repo_root, load_config, latest_version
-from .packages import _packages_dir, _check_outdated
-from .registry import _remote_list_versions, _remote_fetch_tf
+from .core import _is_semver, _semver_key, find_repo_root, latest_version
+from .packages import _packages_dir, _check_outdated, _build_clients
+from .registry import RegistryClient
 from .ui import (
     _c, _em, _arr,
     _choose,
@@ -178,15 +178,15 @@ def _diff_component(label: str, path: str, component_dir: Path,
 
 
 def _diff_component_remote(label: str, path: str, remote_rel: str,
-                              consumer_msg: str, registry: str,
+                              consumer_msg: str, client: RegistryClient,
                               from_ver: str | None, to_ver: str | None) -> None:
-    """Preview a component that lives in the remote registry."""
+    """Preview a component that lives in a remote registry."""
     print(f"  {_c('fetching version list from registry...', 'dim')}", end="\r", flush=True)
-    versions = _remote_list_versions(registry, remote_rel)
-    print(" " * 50, end="\r")  # clear the line
+    versions = client.list_versions(remote_rel)
+    print(" " * 50, end="\r")
 
     if not versions:
-        sys.exit(f"❌  ERROR: component '{path}' not found locally or in registry {registry}")
+        sys.exit(f"❌  ERROR: component '{path}' not found in registry {client.name} ({client.url})")
 
     if from_ver is not None or to_ver is not None:
         for v in (from_ver, to_ver):
@@ -205,7 +205,7 @@ def _diff_component_remote(label: str, path: str, remote_rel: str,
             ver_dir = tmp_path / ver
             ver_dir.mkdir()
             for tf_name in ("variables.tf", "outputs.tf"):
-                content = _remote_fetch_tf(registry, f"{remote_rel}/{ver}/{tf_name}")
+                content = client.fetch_file(f"{remote_rel}/{ver}/{tf_name}")
                 if content:
                     (ver_dir / tf_name).write_text(content)
 
@@ -269,10 +269,12 @@ def _parse_versions(args: list[str], name_idx: int) -> tuple[str | None, str | N
     return from_ver, to_ver
 
 
+def _get_clients(repo_root: Path) -> list[RegistryClient]:
+    return _build_clients(repo_root)
+
+
 def cmd_diff_atom(args: list[str]) -> None:
     provider, repo_root = _resolve_provider(args)
-    config   = load_config(repo_root)
-    registry = config.get("registry", "local")
 
     if len(args) >= 2:
         raw = args[1]
@@ -291,15 +293,17 @@ def cmd_diff_atom(args: list[str]) -> None:
 
     atom_dir = repo_root / "atoms" / provider / category / name
     if not atom_dir.is_dir():
-        if registry == "local":
-            sys.exit(f"❌  ERROR: atom not found at {atom_dir}")
-        _diff_component_remote(
-            "atom", f"{provider}/{category}/{name}",
-            f"atoms/{provider}/{category}/{name}",
-            "molecules that use this atom may need to be updated",
-            registry, from_ver, to_ver,
-        )
-        return
+        clients = _get_clients(repo_root)
+        rel     = f"atoms/{provider}/{category}/{name}"
+        for client in clients:
+            if client.list_versions(rel):
+                _diff_component_remote(
+                    "atom", f"{provider}/{category}/{name}", rel,
+                    "molecules that use this atom may need to be updated",
+                    client, from_ver, to_ver,
+                )
+                return
+        sys.exit(f"❌  ERROR: atom not found locally or in any registry")
 
     _diff_component("atom", f"{provider}/{category}/{name}", atom_dir,
                        "molecules that use this atom may need to be updated",
@@ -308,8 +312,6 @@ def cmd_diff_atom(args: list[str]) -> None:
 
 def cmd_diff_molecule(args: list[str]) -> None:
     provider, repo_root = _resolve_provider(args)
-    config   = load_config(repo_root)
-    registry = config.get("registry", "local")
 
     if len(args) >= 2:
         name = args[1]
@@ -324,15 +326,17 @@ def cmd_diff_molecule(args: list[str]) -> None:
 
     mol_dir = repo_root / "molecules" / provider / name
     if not mol_dir.is_dir():
-        if registry == "local":
-            sys.exit(f"❌  ERROR: molecule not found at {mol_dir}")
-        _diff_component_remote(
-            "molecule", f"{provider}/{name}",
-            f"molecules/{provider}/{name}",
-            "matters that use this molecule may need to be updated",
-            registry, from_ver, to_ver,
-        )
-        return
+        clients = _get_clients(repo_root)
+        rel     = f"molecules/{provider}/{name}"
+        for client in clients:
+            if client.list_versions(rel):
+                _diff_component_remote(
+                    "molecule", f"{provider}/{name}", rel,
+                    "matters that use this molecule may need to be updated",
+                    client, from_ver, to_ver,
+                )
+                return
+        sys.exit(f"❌  ERROR: molecule not found locally or in any registry")
 
     _diff_component("molecule", f"{provider}/{name}", mol_dir,
                        "matters that use this molecule may need to be updated",
@@ -378,10 +382,13 @@ def cmd_diff_matter(args: list[str]) -> None:
         if is_package:
             # For packages: query registry for latest version
             try:
-                cfg      = load_config(repo_root)
-                registry = cfg["registry"]
-                versions = _remote_list_versions(registry, f"molecules/{provider_mol}/{mol_name}")
-                latest   = versions[-1] if versions else None
+                clients = _get_clients(repo_root)
+                latest  = None
+                for _c2 in clients:
+                    versions = _c2.list_versions(f"molecules/{provider_mol}/{mol_name}")
+                    if versions:
+                        latest = versions[-1]
+                        break
             except Exception:
                 latest = None
         else:

@@ -5,14 +5,43 @@ import re
 import sys
 from pathlib import Path
 
-from .core import _packages_dir, _semver_key, _is_semver, find_repo_root, load_config, latest_version
-from .registry import (
-    _gh_api,
-    _github_org_repo,
-    _remote_fetch_tf,
-    _remote_list_versions,
-)
+from .core import _packages_dir, _semver_key, _is_semver, find_repo_root, load_registries, load_secure, latest_version
+from .registry import RegistryClient, make_client
 from .ui import _c, _em, _arr, _confirm, _choose, _resolve_matter_and_env
+
+
+# ── Registry resolution ───────────────────────────────────────────────────────
+
+def _build_clients(repo_root: Path) -> list[RegistryClient]:
+    """Build registry clients merging eif.project.json with auth from eif.secure.json."""
+    regs     = load_registries(repo_root)
+    auth_map = load_secure(repo_root).get("registryAuth", {})
+    return [make_client({**r, "auth": auth_map.get(r["name"], {})}) for r in regs]
+
+
+def _require_clients(repo_root: Path) -> list[RegistryClient]:
+    clients = _build_clients(repo_root)
+    if not clients:
+        sys.exit(
+            "❌  ERROR: no registries configured\n"
+            "    run: eif registry add <name> <url>"
+        )
+    return clients
+
+
+def _find_client_for_molecule(
+    clients: list[RegistryClient], provider: str, name: str, version: str | None = None
+) -> tuple[RegistryClient, str] | None:
+    """Return (client, resolved_version) for the first registry that has the molecule."""
+    for client in clients:
+        versions = client.list_versions(f"molecules/{provider}/{name}")
+        if not versions:
+            continue
+        if version is None:
+            return client, versions[-1]
+        if version in versions:
+            return client, version
+    return None
 
 
 # ── Package store helpers ─────────────────────────────────────────────────────
@@ -29,23 +58,24 @@ def _package_installed(repo_root: Path, kind: str, provider: str, name: str, ver
 
 
 def _collect_download_plan(
-    registry: str, reg_rel_path: str, dest: Path
+    client: RegistryClient, reg_rel_path: str, dest: Path
 ) -> list[tuple[str, Path]]:
     """Return list of (remote_path, local_dest_file) for all files under reg_rel_path."""
-    items = _gh_api(f"https://api.github.com/repos/{_github_org_repo(registry)}/contents/{reg_rel_path}")
+    items = client.list_dir(reg_rel_path)
     if not isinstance(items, list):
-        sys.exit(f"❌  ERROR: could not fetch {reg_rel_path} from {registry}")
+        sys.exit(f"❌  ERROR: could not fetch {reg_rel_path} from {client.name} ({client.url})")
     plan: list[tuple[str, Path]] = []
     for item in items:
+        item_path = f"{reg_rel_path}/{item['name']}"
         if item["type"] == "file":
-            plan.append((item["path"], dest / item["name"]))
+            plan.append((item_path, dest / item["name"]))
         elif item["type"] == "dir":
-            plan.extend(_collect_download_plan(registry, item["path"], dest / item["name"]))
+            plan.extend(_collect_download_plan(client, item_path, dest / item["name"]))
     return plan
 
 
 def _run_download_plan(
-    registry: str,
+    client: RegistryClient,
     plan: list[tuple[str, Path]],
     label: str,
     done_so_far: list[int],
@@ -57,7 +87,7 @@ def _run_download_plan(
     padded = label.ljust(label_width) if label_width else label
     for remote_path, local_dest in plan:
         local_dest.parent.mkdir(parents=True, exist_ok=True)
-        content = _remote_fetch_tf(registry, remote_path)
+        content = client.fetch_file(remote_path)
         if content is not None:
             local_dest.write_text(content)
         done_so_far[0] += 1
@@ -72,7 +102,7 @@ def _run_download_plan(
 
 
 def _install_atom_deps(
-    registry: str,
+    client: RegistryClient,
     mol_dest: Path,
     repo_root: Path,
     done_so_far: list[int],
@@ -96,17 +126,16 @@ def _install_atom_deps(
         atom_dest = _packages_dir(repo_root) / "atoms" / Path(*parts)
         if atom_dest.is_dir():
             continue
-        # If a local copy exists in the repo, skip the download
         local_atom = repo_root / "atoms" / Path(*parts)
         if local_atom.is_dir():
             continue
-        atom_plan = _collect_download_plan(registry, atom_rel, atom_dest)
+        atom_plan = _collect_download_plan(client, atom_rel, atom_dest)
         total    += len(atom_plan)
-        _run_download_plan(registry, atom_plan, label, done_so_far, total, label_width)
+        _run_download_plan(client, atom_plan, label, done_so_far, total, label_width)
 
 
 def _install_molecule(
-    registry: str, provider: str, name: str, version: str, repo_root: Path,
+    client: RegistryClient, provider: str, name: str, version: str, repo_root: Path,
     label_width: int = 0,
 ) -> None:
     """Download a molecule and its atom dependencies to eif_packages/."""
@@ -116,21 +145,20 @@ def _install_molecule(
     if dest.is_dir():
         print(f"  {_c('✓', 'bgreen')} {_c(padded, 'cyan')}  already cached")
         return
-    # If a local copy exists (authored in this repo), skip the download
     local = repo_root / "molecules" / provider / name / version
     if local.is_dir():
         print(f"  {_c('✓', 'bgreen')} {_c(padded, 'cyan')}  local")
         return
 
     reg_rel  = f"molecules/{provider}/{name}/{version}"
-    mol_plan = _collect_download_plan(registry, reg_rel, dest)
+    mol_plan = _collect_download_plan(client, reg_rel, dest)
 
     total       = len(mol_plan)
     done_so_far = [0]
 
     print(f"  {_c('↓', 'molecule')} {_c(padded, 'dim')}  collecting...\033[K", end="\r", flush=True)
-    _run_download_plan(registry, mol_plan, label, done_so_far, total, label_width)
-    _install_atom_deps(registry, dest, repo_root, done_so_far, total, label, label_width)
+    _run_download_plan(client, mol_plan, label, done_so_far, total, label_width)
+    _install_atom_deps(client, dest, repo_root, done_so_far, total, label, label_width)
 
     bar_width = 24
     bar = "█" * bar_width
@@ -155,10 +183,8 @@ def _all_compositions(repo_root: Path) -> list[tuple[Path, dict]]:
     return results
 
 
-def _check_outdated(molecules: list, registry: str) -> list[dict]:
+def _check_outdated(molecules: list, clients: list[RegistryClient]) -> list[dict]:
     """Return list of {name, source, version, latest} for upgradeable molecules."""
-    if registry == "local":
-        return []
     outdated = []
     for mol in molecules:
         source  = mol.get("source", "")
@@ -166,36 +192,28 @@ def _check_outdated(molecules: list, registry: str) -> list[dict]:
         if not source or not version or "/" not in source:
             continue
         provider, name = source.split("/", 1)
-        try:
-            versions = _remote_list_versions(registry, f"molecules/{provider}/{name}")
-        except Exception:
-            continue
-        if not versions:
-            continue
-        latest = versions[-1]
-        if _semver_key(latest) > _semver_key(version):
-            outdated.append({"name": mol["name"], "source": source, "version": version, "latest": latest})
+        for client in clients:
+            try:
+                versions = client.list_versions(f"molecules/{provider}/{name}")
+            except Exception:
+                continue
+            if not versions:
+                continue
+            latest = versions[-1]
+            if _semver_key(latest) > _semver_key(version):
+                outdated.append({
+                    "name": mol["name"], "source": source,
+                    "version": version, "latest": latest,
+                })
+            break  # found in this registry — stop searching
     return outdated
 
 
-# ── Commands (package) ────────────────────────────────────────────────────────
-
-def _require_registry(repo_root: Path) -> str:
-    config   = load_config(repo_root)
-    registry = config.get("registry", "local")
-    if registry == "local":
-        sys.exit(
-            "❌  ERROR: no remote registry configured\n"
-            "    create eif.project.json with:\n"
-            '    {"registry": "https://github.com/giordanocardillo/eif-library"}'
-        )
-    return registry
-
+# ── Shared helper ─────────────────────────────────────────────────────────────
 
 def _matter_composition(repo_root: Path) -> tuple[Path, dict] | None:
     """Return (comp_file, comp_dict) if cwd is inside a matter, else None."""
     cwd = Path.cwd()
-    # Look for composition.json at cwd or one level up (cwd may be matter/<provider>)
     for candidate in (cwd / "composition.json", cwd.parent / "composition.json"):
         if candidate.exists():
             try:
@@ -205,41 +223,38 @@ def _matter_composition(repo_root: Path) -> tuple[Path, dict] | None:
     return None
 
 
+# ── Commands (package) ────────────────────────────────────────────────────────
+
 def cmd_package_install(args: list[str]) -> None:
     repo_root = find_repo_root(Path.cwd())
-    registry  = _require_registry(repo_root)
+    clients   = _require_clients(repo_root)
 
-    # ── With a package name: install specific package (like npm install <pkg>) ──
     if args:
-        # Support aws/db@1.2.0 syntax
-        if "@" in args[0]:
-            args = args[0].split("@", 1) + args[1:]
+        raw     = args[0]
+        version = None
+        if "@" in raw:
+            raw, version = raw.split("@", 1)
 
-        if len(args) >= 2:
-            source, version = args[0], args[1]
-            if "/" not in source:
-                sys.exit("❌  ERROR: source must be <provider>/<name>  e.g. aws/db")
-            provider, name = source.split("/", 1)
-        else:
-            source = args[0]
-            if "/" not in source:
-                sys.exit("❌  ERROR: source must be <provider>/<name>  e.g. aws/db")
-            provider, name = source.split("/", 1)
-            versions = _remote_list_versions(registry, f"molecules/{provider}/{name}")
-            if not versions:
-                sys.exit(f"❌  ERROR: no versions found for {source} in registry")
-            version = versions[-1]
-            print(f"  {_c('latest', 'dim')} {_arr()} {_c(version, 'bgreen')}")
+        if "/" not in raw:
+            sys.exit("❌  ERROR: source must be <provider>/<name>  e.g. aws/db")
+        provider, name = raw.split("/", 1)
+        source = f"{provider}/{name}"
 
-        _install_molecule(registry, provider, name, version, repo_root)
-
-        # Pin in composition.json if inside a matter
-        result = _matter_composition(repo_root)
+        result = _find_client_for_molecule(clients, provider, name, version)
         if result is None:
+            regs = ", ".join(c.name for c in clients)
+            sys.exit(f"❌  ERROR: {source}{('@' + version) if version else ''} not found in [{regs}]")
+        client, version = result
+        print(f"  {_c(client.name, 'dim')} {_arr()} {_c(version, 'bgreen')}")
+
+        _install_molecule(client, provider, name, version, repo_root)
+
+        result2 = _matter_composition(repo_root)
+        if result2 is None:
             print(f"{_c('  tip: run inside a matter directory to pin to composition.json', 'dim')}")
             return
 
-        comp_file, comp = result
+        comp_file, comp = result2
         existing = next((m for m in comp.get("molecules", []) if m["source"] == source), None)
         if existing:
             old_ver = existing["version"]
@@ -253,13 +268,14 @@ def cmd_package_install(args: list[str]) -> None:
             print(f"{_em('✅')}pinned    {_c(source, 'cyan')}@{_c(version, 'bgreen', 'bold')} {_c('→ composition.json', 'dim')}")
         return
 
-    # ── No args: install all pinned packages + check remote for upgrades ──
+    # ── No args: install all pinned packages ──────────────────────────────────
     compositions = _all_compositions(repo_root)
     if not compositions:
         print(f"{_c('no composition.json files found', 'dim')}")
         return
 
-    print(f"{_em('📦')}installing packages {_arr()} {_c(registry, 'dim')}\n")
+    reg_names = ", ".join(c.name for c in clients)
+    print(f"{_em('📦')}installing packages {_arr()} {_c(reg_names, 'dim')}\n")
 
     seen: set = set()
     all_mols: list = []
@@ -280,12 +296,17 @@ def cmd_package_install(args: list[str]) -> None:
 
     lw = max((len(f"{p}/{n}@{v}") for p, n, v in mols_to_install), default=0)
     for provider, name, version in mols_to_install:
-        _install_molecule(registry, provider, name, version, repo_root, lw)
+        result = _find_client_for_molecule(clients, provider, name, version)
+        if result is None:
+            regs = ", ".join(c.name for c in clients)
+            print(f"  {_c('✗', 'bred')} {_c(f'{provider}/{name}@{version}', 'cyan')}  not found in [{regs}]")
+            continue
+        client, _ = result
+        _install_molecule(client, provider, name, version, repo_root, lw)
 
     print(f"\n{_em('✅')}{_c('done', 'bgreen', 'bold')}")
 
-    # Check remote registry for available upgrades (like npm)
-    outdated = _check_outdated(all_mols, registry)
+    outdated = _check_outdated(all_mols, clients)
     if outdated:
         print(f"\n  {_c(f'{len(outdated)} package(s) have updates available', 'yellow')} "
               f"{_arr()} run {_c('eif package update', 'bcyan')} to upgrade")
@@ -313,15 +334,14 @@ def cmd_package_remove(args: list[str]) -> None:
 
 
 def cmd_package_update(args: list[str]) -> None:
-    from .diff import _diff_component_remote  # avoid circular at module level
+    from .diff import _diff_component_remote
 
     safe_mode = "--safe" in args
     args      = [a for a in args if a != "--safe"]
 
     repo_root = find_repo_root(Path.cwd())
-    registry  = _require_registry(repo_root)
+    clients   = _require_clients(repo_root)
 
-    # Resolve which matter to update
     matter_path, _ = _resolve_matter_and_env([])
     comp_file = matter_path / "composition.json"
     if not comp_file.exists():
@@ -330,7 +350,6 @@ def cmd_package_update(args: list[str]) -> None:
     comp    = json.loads(comp_file.read_text())
     changed = False
 
-    # Filter to specific source if provided
     target_source = args[0] if args else None
 
     if safe_mode:
@@ -345,15 +364,23 @@ def cmd_package_update(args: list[str]) -> None:
             continue
 
         provider, name = source.split("/", 1)
-        try:
-            versions = _remote_list_versions(registry, f"molecules/{provider}/{name}")
-        except Exception:
-            print(f"  {_c('skip', 'dim')} {_c(source, 'dim')} — registry unavailable")
+
+        # Find registry that has this molecule and get latest version
+        result = None
+        for client in clients:
+            try:
+                versions = client.list_versions(f"molecules/{provider}/{name}")
+            except Exception:
+                continue
+            if versions:
+                result = (client, versions[-1])
+                break
+
+        if result is None:
+            print(f"  {_c('skip', 'dim')} {_c(source, 'dim')} — not found in any registry")
             continue
 
-        if not versions:
-            continue
-        latest = versions[-1]
+        client, latest = result
 
         if _semver_key(latest) <= _semver_key(version):
             print(f"  {_em('✅')}{_c(source, 'green')}@{_c(version, 'dim')}  up-to-date")
@@ -366,19 +393,18 @@ def cmd_package_update(args: list[str]) -> None:
             )
             continue
 
-        # Show diff
         _diff_component_remote(
             "molecule", source,
             f"molecules/{provider}/{name}",
             "update composition.json when safe",
-            registry, version, latest,
+            client, version, latest,
         )
 
         if not _confirm(f"update {source} {_c(version, 'yellow')} → {_c(latest, 'bgreen')}?", default=True):
             continue
 
         mol["version"] = latest
-        _install_molecule(registry, provider, name, latest, repo_root)
+        _install_molecule(client, provider, name, latest, repo_root)
         changed = True
 
     if changed:
@@ -389,7 +415,7 @@ def cmd_package_update(args: list[str]) -> None:
 
 
 def cmd_package_list(args: list[str]) -> None:  # noqa: ARG001
-    from .ui import _IS_TTY  # re-import for local use
+    from .ui import _IS_TTY
     repo_root = find_repo_root(Path.cwd())
     pdir      = _packages_dir(repo_root)
 
@@ -415,9 +441,9 @@ def cmd_package_list(args: list[str]) -> None:  # noqa: ARG001
 
 
 def cmd_package_outdated(args: list[str]) -> None:  # noqa: ARG001
-    from .ui import _IS_TTY  # re-import for local use
+    from .ui import _IS_TTY
     repo_root = find_repo_root(Path.cwd())
-    registry  = _require_registry(repo_root)
+    clients   = _require_clients(repo_root)
 
     compositions = _all_compositions(repo_root)
     if not compositions:
@@ -426,7 +452,7 @@ def cmd_package_outdated(args: list[str]) -> None:  # noqa: ARG001
 
     any_outdated = False
     for comp_file, comp in compositions:
-        outdated = _check_outdated(comp.get("molecules", []), registry)
+        outdated = _check_outdated(comp.get("molecules", []), clients)
         if not outdated:
             continue
         any_outdated = True

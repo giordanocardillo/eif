@@ -145,6 +145,7 @@ _ACCOUNTS_ENTRY: dict[str, dict] = {
 _GITIGNORE_CONTENT = """\
 # eif
 accounts.json
+eif.secure.json
 eif_packages/
 .rendered/
 .history/
@@ -368,7 +369,13 @@ def cmd_init_project(args: list[str]) -> None:
 
     # eif.project.json
     project_file = cwd / "eif.project.json"
-    project_file.write_text(json.dumps({"name": cwd.name}, indent=2) + "\n")
+    _OFFICIAL_REGISTRY = "https://github.com/giordanocardillo/eif-library"
+    add_official = _confirm(f"add official registry ({_OFFICIAL_REGISTRY})?", default=True)
+    registries = []
+    if add_official:
+        registries.append({"name": "official", "type": "github", "url": _OFFICIAL_REGISTRY, "priority": 0})
+    project_data = {"name": cwd.name, "registries": registries}
+    project_file.write_text(json.dumps(project_data, indent=2) + "\n")
     print(f"{_em('✨')}created   {_arr()} {_c('eif.project.json', 'cyan')}")
 
     # .gitignore

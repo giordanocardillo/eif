@@ -6,10 +6,11 @@ import sys
 from importlib.metadata import version as _pkg_version
 from pathlib import Path
 
-from .core import find_repo_root
+from .core import find_repo_root, load_config, load_registries, load_secure, save_secure
 from .packages import (
     _packages_dir,
-    _require_registry,
+    _require_clients,
+    _find_client_for_molecule,
     _matter_composition,
     _install_molecule,
     cmd_package,
@@ -29,7 +30,7 @@ from .ui import (
     _list_molecules,
     _resolve_matter_and_env,
 )
-from .registry import _remote_list_versions
+from .registry import SUPPORTED_TYPES
 
 
 def _pin_molecule_to_comp(comp_file: Path, comp: dict,
@@ -61,7 +62,7 @@ def cmd_add(args: list[str]) -> None:
 
     # eif add [<provider>/<name>[@version]] — add molecule to current matter
     repo_root = find_repo_root(Path.cwd())
-    registry  = _require_registry(repo_root)
+    clients   = _require_clients(repo_root)
 
     result = _matter_composition(repo_root)
     if result is None:
@@ -89,25 +90,28 @@ def cmd_add(args: list[str]) -> None:
 
         from .core import latest_version
         if not version:
-            # Local-first: check authored then cached
             local_ver = (latest_version(repo_root / "molecules" / src_provider / name)
                          or latest_version(_packages_dir(repo_root) / "molecules" / src_provider / name))
             if local_ver:
                 version = local_ver
             else:
-                # Fall back to registry
-                versions = _remote_list_versions(registry, f"molecules/{src_provider}/{name}")
-                if not versions:
-                    sys.exit(f"❌  ERROR: {source} not found locally or in registry")
-                version = versions[-1]
-                print(f"  {_c('fetching from registry', 'dim')} {_arr()} {_c(version, 'bgreen')}")
-                _install_molecule(registry, src_provider, name, version, repo_root)
+                res = _find_client_for_molecule(clients, src_provider, name)
+                if res is None:
+                    regs = ", ".join(c.name for c in clients)
+                    sys.exit(f"❌  ERROR: {source} not found locally or in [{regs}]")
+                client, version = res
+                print(f"  {_c(client.name, 'dim')} {_arr()} {_c(version, 'bgreen')}")
+                _install_molecule(client, src_provider, name, version, repo_root)
         else:
-            # Specific version — ensure it's present locally, install if not
             cached = (_packages_dir(repo_root) / "molecules" / src_provider / name / version)
             local  = repo_root / "molecules" / src_provider / name / version
             if not local.is_dir() and not cached.is_dir():
-                _install_molecule(registry, src_provider, name, version, repo_root)
+                res = _find_client_for_molecule(clients, src_provider, name, version)
+                if res is None:
+                    regs = ", ".join(c.name for c in clients)
+                    sys.exit(f"❌  ERROR: {source}@{version} not found in [{regs}]")
+                client, _ = res
+                _install_molecule(client, src_provider, name, version, repo_root)
 
         _pin_molecule_to_comp(comp_file, comp, source, name, version)
 
@@ -122,6 +126,174 @@ def cmd_add(args: list[str]) -> None:
         print()
         for mol in selected:
             _pin_molecule_to_comp(comp_file, comp, mol["source"], mol["name"], mol["version"])
+
+
+def cmd_registry_list(_args: list[str]) -> None:
+    import os
+    repo_root = find_repo_root(Path.cwd())
+    regs      = load_registries(repo_root)
+    if not regs:
+        print(f"  {_c('no registries configured', 'dim')}")
+        print(f"  run: {_c('eif registry add', 'cyan')}")
+        return
+    auth_map = load_secure(repo_root).get("registryAuth", {})
+    w = 20 + (9 if _IS_TTY else 0)
+    for reg in regs:
+        name     = reg.get("name", "?")
+        url      = reg.get("url", "?")
+        reg_type = reg.get("type", "?")
+        priority = reg.get("priority", 0)
+        auth     = auth_map.get(name, {})
+        auth_t   = auth.get("type") or ("bearer" if auth.get("token_env") else None)
+
+        if auth_t == "bearer":
+            env = auth.get("token_env", "")
+            auth_tag = (f"  {_c('[token ✓]', 'bgreen')}" if os.environ.get(env)
+                        else f"  {_c(f'[{env} unset]', 'yellow')}")
+        elif auth_t == "basic":
+            auth_tag = f"  {_c('[basic auth]', 'dim')}"
+        elif auth_t == "oauth_client":
+            auth_tag = f"  {_c('[oauth_client]', 'dim')}"
+        elif auth_t == "github" or auth_t == "gitlab":
+            auth_tag = f"  {_c(f'[{auth_t} token]', 'dim')}"
+        else:
+            auth_tag = f"  {_c('[public]', 'dim')}"
+
+        print(f"  {_c(name, 'bcyan', 'bold'):<{w}}  "
+              f"{_c(f'[{reg_type}]', 'dim')}  p={_c(str(priority), 'dim')}  "
+              f"{_c(url, 'cyan')}{auth_tag}")
+
+
+def cmd_registry_add(args: list[str]) -> None:
+    from .ui import _ask, _choose
+    repo_root = find_repo_root(Path.cwd())
+    cfg_file  = repo_root / "eif.project.json"
+
+    positional = [a for a in args if not a.startswith("--")]
+    name, url  = (positional + [None, None])[:2]
+
+    reg_type = None
+    priority = None
+    for i, a in enumerate(args):
+        if a == "--type" and i + 1 < len(args):
+            reg_type = args[i + 1]
+        if a == "--priority" and i + 1 < len(args):
+            try:
+                priority = int(args[i + 1])
+            except ValueError:
+                sys.exit("❌  ERROR: --priority must be an integer")
+
+    print()
+    if not reg_type:
+        reg_type = _choose("registry type", list(SUPPORTED_TYPES))
+    if not name:
+        name = _ask("registry name")
+        if not name:
+            sys.exit("aborted")
+    if not url:
+        url = _ask("registry URL")
+        if not url:
+            sys.exit("aborted")
+    if priority is None:
+        raw = _ask("priority (higher = preferred, default 0)", default="0")
+        try:
+            priority = int(raw)
+        except ValueError:
+            sys.exit("❌  ERROR: priority must be an integer")
+
+    # ── Auth prompts → eif.secure.json ────────────────────────────────────────
+    auth: dict = {}
+    if reg_type in ("github", "gitlab"):
+        token_env = _ask("token env var (leave blank if public)", default="") or None
+        if token_env:
+            auth["token_env"] = token_env
+    elif reg_type == "http":
+        auth_type = _choose("auth type", ["none", "bearer", "basic", "oauth_client"])
+        if auth_type == "bearer":
+            token_env = _ask("token env var")
+            if token_env:
+                auth["type"]      = "bearer"
+                auth["token_env"] = token_env
+        elif auth_type == "basic":
+            auth["type"]         = "basic"
+            auth["username_env"] = _ask("username env var")
+            auth["password_env"] = _ask("password env var")
+        elif auth_type == "oauth_client":
+            auth["type"]              = "oauth_client"
+            auth["client_id_env"]     = _ask("client ID env var")
+            auth["client_secret_env"] = _ask("client secret env var")
+            auth["token_url"]         = _ask("token URL")
+    print()
+
+    # ── Write public config → eif.project.json ────────────────────────────────
+    config = load_config(repo_root)
+    regs   = config.get("registries", [])
+    if any(r["name"] == name for r in regs):
+        sys.exit(f"❌  ERROR: registry '{name}' already exists — remove it first")
+    regs.append({"name": name, "type": reg_type, "url": url.rstrip("/"), "priority": priority})
+    config["registries"] = regs
+    cfg_file.write_text(json.dumps(config, indent=2) + "\n")
+
+    # ── Write auth → eif.secure.json (if any) ─────────────────────────────────
+    if auth:
+        secure = load_secure(repo_root)
+        secure.setdefault("registryAuth", {})[name] = auth
+        save_secure(repo_root, secure)
+        print(f"{_em('✅')}added     {_c(name, 'bcyan', 'bold')} [{_c(reg_type, 'dim')}] {_arr()} {_c(url, 'dim')}")
+        print(f"  {_c('auth saved to eif.secure.json (gitignored)', 'dim')}")
+    else:
+        print(f"{_em('✅')}added     {_c(name, 'bcyan', 'bold')} [{_c(reg_type, 'dim')}] {_arr()} {_c(url, 'dim')}")
+
+
+def cmd_registry_remove(args: list[str]) -> None:
+    repo_root = find_repo_root(Path.cwd())
+    cfg_file  = repo_root / "eif.project.json"
+    config    = load_config(repo_root)
+    regs      = config.get("registries", [])
+
+    if not regs:
+        sys.exit("❌  ERROR: no registries configured")
+
+    if args:
+        name = args[0]
+    else:
+        labels = [f"{r['name']}  ({r['url']})" for r in regs]
+        chosen = _choose("registry to remove", labels)
+        name   = regs[labels.index(chosen)]["name"]
+
+    before = len(regs)
+    regs   = [r for r in regs if r["name"] != name]
+    if len(regs) == before:
+        sys.exit(f"❌  ERROR: registry '{name}' not found")
+    config["registries"] = regs
+    cfg_file.write_text(json.dumps(config, indent=2) + "\n")
+
+    # Also remove auth entry from eif.secure.json if present
+    secure   = load_secure(repo_root)
+    auth_map = secure.get("registryAuth", {})
+    if name in auth_map:
+        del auth_map[name]
+        secure["registryAuth"] = auth_map
+        save_secure(repo_root, secure)
+        print(f"{_em('✅')}removed   {_c(name, 'cyan')} from eif.project.json + eif.secure.json")
+    else:
+        print(f"{_em('✅')}removed   {_c(name, 'cyan')} from eif.project.json")
+
+
+def cmd_registry(args: list[str]) -> None:
+    SUBS = {
+        "list":   cmd_registry_list,   "ls": cmd_registry_list,
+        "add":    cmd_registry_add,
+        "remove": cmd_registry_remove, "rm": cmd_registry_remove,
+    }
+    if not args or args[0] not in SUBS:
+        sys.exit(
+            "Usage:\n"
+            "  eif registry list                          List configured registries\n"
+            "  eif registry add <name> <url> [opts]       Add registry (--priority N, --token-env VAR)\n"
+            "  eif registry remove <name>                 Remove registry"
+        )
+    SUBS[args[0]](args[1:])
 
 
 def cmd_cache_clean(args: list[str]) -> None:  # noqa: ARG001
@@ -273,6 +445,11 @@ def _usage() -> str:
         sub("remove", "molecule", "[<pvd> <name>]",                       "delete a local molecule"),
         sub("remove", "matter",   "[<pvd> <name>]",                       "delete a local matter"),
         "",
+        b("  REGISTRIES"),
+        sub("registry", "list",   "",                                "show configured registries"),
+        sub("registry", "add",    "[--type T] [--priority N]",        "add a registry (interactive if no args)"),
+        sub("registry", "remove", "<name>",                          "remove a registry"),
+        "",
         b("  PACKAGES  ") + d("(remote molecules + bundled atoms from registry)"),
 
         psub("install",  "",                            "install all pinned packages"),
@@ -324,9 +501,11 @@ def main() -> None:
         "add":       cmd_add,
         "init":      cmd_init,
         "config":    cmd_config,
-        "package":  cmd_package,
-        "packages": cmd_package,
-        "pkg":      cmd_package,
+        "package":   cmd_package,
+        "packages":  cmd_package,
+        "pkg":       cmd_package,
+        "registry":  cmd_registry,
+        "reg":       cmd_registry,
         "cache":     cmd_cache,
         "help":      lambda _: sys.exit(USAGE),
     }
